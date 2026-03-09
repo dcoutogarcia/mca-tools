@@ -6,6 +6,12 @@ The expected feature set is:
 - Calibrating the detector using known energies of gamma rays
 - Characterizing the geometrical eficiency of the detector (including a Monte Carlo simulation)
 
+## Depencencies
+Currently it depends on:
+- Matplotlib
+- Numpy
+- Scipy.optimize
+
 ## `peakSelector` class
 Currently, the only thing that it implemented is the `peakSelector` class. This class takes the mca file path as an input and processes the data to get
 the parameters that fit the peak to a gaussian function. The class works by:

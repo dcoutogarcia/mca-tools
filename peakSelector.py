@@ -72,7 +72,7 @@ class peakSelector:
     plot: represents the data in a static, non-interactive way. It's used
           to test if the data was loaded properly.
 
-    interactive_plot: let's the user select the desired peaks to be
+    interactive_plot: lets the user select the desired peaks to be
                       analyzed by curve_fit. It works with matplotlib
                       picker events.
 

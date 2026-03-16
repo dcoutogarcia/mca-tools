@@ -9,8 +9,6 @@ from uncertainty import round_uncertainty
 from translations import valid_languages
 from translations import translation_peakSelector as transl
 
-# Util funcions to reduce cluttering in the class
-
 """
 Resets the values of the last peak inserted in the plot. It does so
 by removing the elements of the sublist that contains the information
@@ -72,28 +70,28 @@ class peakSelector:
     plot: represents the data in a static, non-interactive way. It's used
           to test if the data was loaded properly.
 
-    interactive_plot: lets the user select the desired peaks to be
-                      analyzed by curve_fit. It works with matplotlib
-                      picker events.
+
+    select_peaks: lets the user select the desired peaks to be
+                  analyzed by curve_fit. It works with matplotlib
+                  spicker events.
+
+    fit_peak: fits the peak to a gaussian function plus a polynomial
+              background. In case of having a double peak, it adjusts to
+              two gaussian funcions and the polynomial background.
+              It accepts all scipy.optimize.curve_fit **kwargs.
+
+              The output is the optimal parameters and the covariance
+              matrix.
 
     """
     def __init__(self, file, **kwargs):
-        """
-        Indicate self variables here:
-        filePath
-        bins_fused
-        time
-        bins
-        xbins
-        """
-
         # Basic variables
         self.file_path = file
         self.time = 0
-        self.bins = []
-        self.xbins = []
-        self.delta_x = 0
-        self.bins_uncertainty = []
+        self.counts = [] # Number of counts per channel
+        self.rates = [] # Counts / time
+        self.xbins = [] # x values of channels
+        self.delta_x = 0 # diference in x units between x distance in bins
 
         # User options
         self.bins_fused = 10 # Default number of bins fused in rebining
@@ -104,84 +102,106 @@ class peakSelector:
 
         # Background noise filtering
         self.bkg_file = None
-        self.bkg_bins = None
+        self.bkg_rates = None
         self.bkg_time = None
 
         # Modify default values with kwargs
         for k, val in kwargs.items():
             if k == "bins_fused":
                 self.bins_fused = val
-            elif k == "lang":
-                if val in valid_languages:
-                    self.lang = val
-                else:
-                    print("Not a valid language, using English!")
             elif k == "bkg_file":
                 self.bkg_file = val
 
+        # Select the language, it needs to ve specified in a variable
+        # called lang. If the variable isn't present, English will
+        # be used
+        try:
+            if lang in valid_languages:
+                self.lang = lang
+            else:
+                print("Not a valid language, using English!")
+        except NameError:
+            pass
 
-        self.read_mca()
+        # Here we start the methods automaticaly, they can be used
+        # anyway to modify default values.
 
-        # Rebining can be disbled by usings kwargs.
+        self.read_mca() # We read the values
+
+        # Rebining can be disbled by usings kwargs. If not,
+        # it will be performed.
         if self.bins_fused != 0 and self.bins_fused != False:
             self.rebining(self.bins_fused)
 
+        # If a background file was specified as a kwarg, it will
+        # execute the method to remove background noise automaticaly.
         if self.bkg_file is not None:
-            self.substract_background_noise(self.bkg_file, self.bins_fused)
-
-        self.get_bins_uncertainty()
+            self.substract_background_noise(self.bkg_file)
 
 
     def read_mca(self):
+        """
+        Reads the mca file specified in the object inicialization.
+
+        Output: rates: np.ndarray, time: int
+        """
         f = open(self.file_path, "r")
 
         time = None
-        bins = []
+        counts = []
         line = f.readline()
         while line != "":
             if len(line) > 10 and line[:9] == "REAL_TIME":
                 time = int(line.split("-")[1]) # time in seconds
 
             if (line.strip()).isdigit():
-                bins.append(int(line))
+                counts.append(int(line))
 
             line = f.readline()
 
-        xbins = np.arange(0, len(bins), 1)
+        xbins = np.arange(0, len(counts), 1)
 
-        self.bins = np.array(bins)
+        self.counts = np.array(counts)
         self.xbins = xbins
         self.time = time
         self.delta_x = self.xbins[1] - self.xbins[0]
+        self.rates = self.counts / self.time
 
-
-        return np.array(bins), time
+        return np.array(self.rates), time
 
     def rebining(self, bins_fused):
         """
-        Performs a rebining of bins_fused channels
+        Performs a rebining of bins_fused channels. If called, it changes the previous rebining
+        for a new one with the specified bins_fused
+
+        Input: int: bins_fused (number of bins combined in the rebining)
+        Output: rates: np.ndarray, time: int
         """
 
         # We make it posible to update the rebining
         if bins_fused != self.bins_fused:
             self.bins_fused = bins_fused
 
+        # We call the read function again, to ensure that future rebinings
+        # made calling the method aren't made over the previous rebining
+        counts, time = self.read_mca()
+        xbins = np.arange(0, len(counts), 1)
 
         new_xbins = []
-        new_bins = []
+        new_counts = []
         j = 0
         sum_bins = 0
 
-        for i in range(len(self.bins)):
+        for i in range(len(counts)):
 
             # If we are on the first bin of the fused group,
             # we save the x value
             if j == 0:
-                mean_x = self.xbins[i]
+                mean_x = xbins[i]
 
             # We keep adding up the bins until we reach
             # j == num_channels_fused.
-            sum_bins += self.bins[i]
+            sum_bins += counts[i]
             j += 1
 
             # If we are on the last bin of the fused group,
@@ -189,66 +209,125 @@ class peakSelector:
             # x value from the mean of the start and end x.
             if j == self.bins_fused:
                 j = 0
-                new_bins.append(sum_bins)
-                mean_x += self.xbins[i]
+                new_counts.append(sum_bins)
+                mean_x += xbins[i]
                 new_xbins.append(mean_x/2)
                 sum_bins = 0
 
-        self.bins = np.array(new_bins)
+        self.counts = np.array(new_counts)
         self.xbins = np.array(new_xbins)
         self.delta_x = self.xbins[1] - self.xbins[0]
 
+        self.rates = self.counts / self.time
 
-        return np.array(new_bins), np.array(new_xbins)
+        return self.rates, self.xbins
 
-    def substract_background_noise(self, bkg_file, bins_fused):
+
+    def substract_background_noise(self, bkg_file):
+        """
+        Substracts the background noise to the original file. It subtracts the background ratio to
+        the main file's ratio. If called again, it recalculates the subtraction from scratch.
+
+        Input: bkg_file: string (path to the background .mca file)
+        Output: np.ndarray(): rates, int: time
+        """
 
         Bkg = peakSelector(bkg_file, bins_fused = self.bins_fused)
 
-        ratioBkg = Bkg.bins / Bkg.time
-        ratioSelf = self.bins / self.time
+        # We call the read function again, to ensure that future rebinings
+        # made calling the method aren't made over the previous rebining
+        selfRates, selfTime = self.rebining(self.bins_fused)
 
-        self.bkg_bins = Bkg.bins
+        rates = (selfRates - Bkg.rates)
+        self.rates = rates
+        self.counts = rates * self.time
+
+        self.bkg_file = bkg_file
+        self.bkg_rates = Bkg.rates
         self.bkg_time = Bkg.time
-        bins = (ratioSelf - ratioBkg) * self.time
-        # We need to remove the negative bins, they cause problems with
-        # uncertainty.
-        for i in range(len(bins)):
-            if bins[i] < 0:
-                bins[i] = 0
 
-        self.bins = bins
+        return self.rates, self.time
 
 
-    def get_bins_uncertainty(self):
+    def get_counts_uncertainty(self):
+        """
+        Computes the uncertainty of the counts based on Poisson Statistics.
 
-        # This is the simplified equation
-        if self.bkg_bins is None:
-            bins_uncertainty = np.sqrt(self.bins / self.time ** 2)
+        Output: counts_uncertainty: np.ndaray
+        """
 
+        if self.bkg_rates is None:
+            counts_uncertainty = np.sqrt(self.counts)
         else:
-            bins_uncertainty = np.sqrt(self.bins / self.time ** 2 +
-                                    self.bkg_bins / self.bkg_time ** 2)
+            # This equation in not correct, I am wating to finish the
+            # uncertainty propagation module to update it
+            counts_uncertainty = np.sqrt(abs(self.rates / self.time) +
+                                    abs(self.bkg_rates / self.bkg_time))
 
-        for i in range(len(bins_uncertainty)):
-            bins_uncertainty[i] = round_uncertainty(bins_uncertainty[i])
+        # We round the uncertainty
+        for i in range(len(counts_uncertainty)):
+            counts_uncertainty[i] = round_uncertainty(counts_uncertainty[i])
 
-        self.bins_uncertainty = bins_uncertainty
+        return counts_uncertainty
 
-        return bins_uncertainty
+
+    def get_rates_uncertainty(self):
+        """
+        Computes the uncertainty of the rates based on Poisson Statistics.
+
+        Output: rates_uncertainty: np.ndaray
+        """
+
+        time_uncertainty = 1 # Our software only saves time in integers
+
+        if self.bkg_rates is None:
+            rates_uncertainty = np.sqrt(abs(self.rates / self.time) +
+            (self.rates ** 2 / self.time ** 2) * time_uncertainty ** 2)
+
+        # Needs updating, it is based on a simpified equations
+        else:
+            rates_uncertainty = np.sqrt((self.rates / self.time) ** 2 +
+                                (self.bkg_rates / self.bkg_time) ** 2)
+
+        for i in range(len(rates_uncertainty)):
+            rates_uncertainty[i] = round_uncertainty(rates_uncertainty[i])
+
+
+        return rates_uncertainty
 
     def plot(self):
+        """
+        Plots the current rates.
+        """
 
         fig, ax = plt.subplots(1,1)
-        ax.bar(self.xbins, self.bins, self.delta_x)
+        ax.bar(self.xbins, self.rates, self.delta_x)
 
         ax.set_xlabel(transl["channels"][self.lang])
-        ax.set_ylabel(transl["counts"][self.lang])
+        ax.set_ylabel(transl["rates"][self.lang])
         fig.suptitle(transl["gamma spectrogram"][self.lang])
 
         plt.show()
 
-    def interactive_plot(self):
+    def plot_errorbar(self):
+        """
+        Plots the current rates with errorbars
+        """
+
+        fig, ax = plt.subplots(1,1)
+        ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
+
+        ax.set_xlabel(transl["channels"][self.lang])
+        ax.set_ylabel(transl["rates"][self.lang])
+        fig.suptitle(transl["gamma spectrogram"][self.lang])
+
+        plt.show()
+
+    def select_peaks(self):
+        """
+        Opens an interactive plot to select the peaks to be adjusted with fit_peak.
+        When closed, updates the self.peak_positions variable.
+        """
 
         peak_positions = [ [ [], None ], ]
         line_positions = []
@@ -370,36 +449,36 @@ class peakSelector:
 
         # We define the plot. The bar plot and the vertical lines
         fig, ax = plt.subplots()
-        ax.bar(self.xbins, self.bins, self.delta_x, picker = True)
+        ax.bar(self.xbins, self.rates, self.delta_x, picker = True)
 
 
         # Here we add the interactive text
 
         # Peak options
         max_xbins = max(self.xbins)
-        max_bins = max(self.bins)
+        max_rates = max(self.rates)
 
-        ax.text(0.7 * max_xbins , 0.95 * max_bins ,
+        ax.text(0.7 * max_xbins , 0.95 * max_rates ,
                 transl["confirm peak"][self.lang], size="x-large")
 
-        ax.text(0.7 * max_xbins, 0.85 * max_bins,
+        ax.text(0.7 * max_xbins, 0.85 * max_rates,
                 transl["mark as single"][self.lang], picker = True,
                 size="large", style = "italic")
 
-        ax.text(0.7 * max_xbins, 0.75 * max_bins,
+        ax.text(0.7 * max_xbins, 0.75 * max_rates,
                 transl["mark as double"][self.lang], picker = True,
                 size="large", style = "italic")
 
 
         # Global options
-        ax.text(0.20 * max_xbins, 0.95 * max_bins,
+        ax.text(0.20 * max_xbins, 0.95 * max_rates,
                 transl["reset peak"][self.lang], size="x-large")
 
-        ax.text(0.20 * max_xbins, 0.85 * max_bins,
+        ax.text(0.20 * max_xbins, 0.85 * max_rates,
                 transl["reset current peak"][self.lang], picker = True,
                 size="large", style = "italic")
 
-        ax.text(0.20 * max_xbins, 0.75 * max_bins,
+        ax.text(0.20 * max_xbins, 0.75 * max_rates,
                 transl["reset all peaks"][self.lang], picker = True,
                 size="large", style = "italic")
 
@@ -410,15 +489,20 @@ class peakSelector:
         fig.show()
 
 
-    def fit_peak(self):
+    def fit_peak(self, **kwargs):
+        """
+        Uses scipy.optimize.curve_fit to fit the peaks selected with .select_peaks() method.
+        It accepts all curve_fit kwargs.
+
+        Output: popt: np.ndarray (optimal parameters), pcov: np.ndaray (covariance matrix)
+        """
 
         # If no peaks were selected, we avoid unnecessary operations
         if self.peak_positions[-1][1] is None:
             return None
 
-
         # Functions for single and double peaks.
-        # One or two gaussian peaks with polynomial backgroud.
+        # One or two gaussian peaks with polynomial background.
         def single_peak(x, p0, p1, p2, p3, p4, p5):
             bkg_func = p0 + p1 * x + p2 * x ** 2
             gaussian_func = p3 * np.exp(-0.5 * ((x - p4) / p5) ** 2)
@@ -439,12 +523,12 @@ class peakSelector:
         for peak in self.peak_positions:
 
             idx1 = find_nearest(self.xbins, min(peak[0]))
-            idx2 = find_nearest(self.xbins,max(peak[0]))
+            idx2 = find_nearest(self.xbins, max(peak[0]))
 
             # x, y and uncertainty in y for curve_fit
             x = self.xbins[idx1:idx2]
-            y = self.bins[idx1:idx2]
-            sy = self.bins_uncertainty[idx1:idx2]
+            y = self.rates[idx1:idx2]
+            sy = self.get_rates_uncertainty()[idx1:idx2]
 
             x_fit = np.linspace(x[0], x[-1], 100)
             y_fit = np.zeros(len(x_fit))
@@ -454,7 +538,10 @@ class peakSelector:
                         sum(y) / np.sqrt(2*np.pi),
                         np.mean(peak[0]),
                         abs(x[0] - x[len(x) // 2])]
-                    popt, pcov = curve_fit(single_peak, x, y, p0=p0, sigma = sy)
+                    if len(kwargs) == 0:
+                        popt, pcov = curve_fit(single_peak, x, y, p0=p0, sigma = sy)
+                    else:
+                        popt, pcov = curve_fit(single_peak, x, y, sigma = sy, **kwargs)
 
                     for i in range(len(x_fit)):
                         y_fit[i] = single_peak(x_fit[i], popt[0], popt[1],
@@ -468,8 +555,11 @@ class peakSelector:
                         np.mean(peak[0]) * 2/3,
                         abs(x[0] - x[len(x) // 4])]
 
+                    if len(kwargs) == 0:
+                        popt, pcov = curve_fit(double_peak, x, y, p0=p0, sigma = sy)
+                    else:
+                        popt, pcov = curve_fit(double_peak, x, y, sigma = sy, **kwargs)
 
-                    popt, pcov = curve_fit(double_peak, x, y, p0=p0, sigma = sy)
                     print(popt)
                     for i in range(len(x_fit)):
                         y_fit[i] = double_peak(x_fit[i], popt[0], popt[1],
@@ -480,7 +570,7 @@ class peakSelector:
 
                 fig, ax = plt.subplots(1,1)
                 ax.plot(x_fit, y_fit)
-                ax.plot(x,y, ".")
+                ax.errorbar(x,y, yerr=sy ,fmt=".")
                 print(popt)
 
             except RuntimeError:
@@ -497,9 +587,9 @@ class peakSelector:
 if __name__ == "__main__":
 
     Bi = peakSelector("Test/Bi.mca", bkg_file = "Test/Background.mca")
-    Co = peakSelector("Test/Co.mca", bkg_file="Test/Background.mca", bins_fused = 20)
+    Co = peakSelector("Test/Co.mca", bkg_file= "Test/Background.mca", bins_fused = 20)
 
-    Bi.interactive_plot()
+    Bi.select_peaks()
     Bi.fit_peak
 
 

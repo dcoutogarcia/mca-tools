@@ -15,6 +15,12 @@ translation_peakSelector = {
         "gl": "Contas",
     },
 
+    "rates": {
+        "en": "Rates",
+        "es": "Tasa",
+        "gl": "Taxa",
+        },
+
     "gamma spectrogram": {
         "en": "Gamma Spectrogram",
         "es": "Espectrograma Gamma ",

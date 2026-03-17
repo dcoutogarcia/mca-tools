@@ -140,11 +140,11 @@ class peakSelector:
 
 
     def read_mca(self):
-      """
-      Reads the mca file specified in the object inicialization.
+        """
+        Reads the mca file specified in the object inicialization.
 
-      Output: rates: np.ndarray, time: int
-      """
+        Output: rates: np.ndarray, time: int
+        """
 
         with open(self.file_path, "r") as f:
     

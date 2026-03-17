@@ -140,32 +140,33 @@ class peakSelector:
 
 
     def read_mca(self):
-        """
-        Reads the mca file specified in the object inicialization.
+      """
+      Reads the mca file specified in the object inicialization.
 
-        Output: rates: np.ndarray, time: int
-        """
-        f = open(self.file_path, "r")
+      Output: rates: np.ndarray, time: int
+      """
 
-        time = None
-        counts = []
-        line = f.readline()
-        while line != "":
-            if len(line) > 10 and line[:9] == "REAL_TIME":
-                time = int(line.split("-")[1]) # time in seconds
-
-            if (line.strip()).isdigit():
-                counts.append(int(line))
-
+        with open(self.file_path, "r") as f:
+    
+            time = None
+            counts = []
             line = f.readline()
+            while line != "":
+                if len(line) > 10 and line[:9] == "REAL_TIME":
+                    time = int(line.split("-")[1]) # time in seconds
 
-        xbins = np.arange(0, len(counts), 1)
+                if (line.strip()).isdigit():
+                    counts.append(int(line))
 
-        self.counts = np.array(counts)
-        self.xbins = xbins
-        self.time = time
-        self.delta_x = self.xbins[1] - self.xbins[0]
-        self.rates = self.counts / self.time
+                line = f.readline()
+
+            xbins = np.arange(0, len(counts), 1)
+
+            self.counts = np.array(counts)
+            self.xbins = xbins
+            self.time = time
+            self.delta_x = self.xbins[1] - self.xbins[0]
+            self.rates = self.counts / self.time
 
         return np.array(self.rates), time
 

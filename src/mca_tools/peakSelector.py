@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 import matplotlib
+import scienceplots
 
 from .translations import translation_peakSelector as transl
 from .uncertainty import round_uncertainty
@@ -707,23 +708,34 @@ class peakSelector:
                 for k, val in non_fit_kwargs.items():
                     if k == "plotting" and val:
                         # We plot the result
-                        fig, ax = plt.subplots(1,1)
-                        ax.plot(x_fit, y_fit, label = transl["fit"][mca.lang])
-                        ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
-                        ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang])
 
-                        if peak[1] == "double":
-                            ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
-                            ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
+                        # Set the style
+                        with plt.style.context(['science', 'ieee']):
+                            plt.style.use(['science', 'ieee'])
+                            plt.rcParams.update({
+                                'figure.dpi': '100', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
+                                'font.size': 12.0
+                            })
+                            fig, ax = plt.subplots(1,1)
+                            ax.plot(x_fit, y_fit, label = transl["fit"][mca.lang])
+                            ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
+                            ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang])
 
-                        else:
-                            ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
+                            if peak[1] == "double":
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
+                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
+
+                            else:
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
 
 
-                        ax.legend()
-                        ax.set_xlabel(transl["channels"][mca.lang])
-                        ax.set_ylabel(transl["rates"][mca.lang])
-                        fig.suptitle(transl["gamma spectrogram"][mca.lang])
+                            ax.legend()
+                            ax.set_xlabel(transl["channels"][mca.lang])
+                            ax.set_ylabel(transl["rates"][mca.lang])
+                            fig.suptitle(transl["gamma spectrogram"][mca.lang])
+
+                            # Showing the plots
+                            plt.show()
 
                 # We append the values to the return list
                 list_pcov.append(pcov)
@@ -734,8 +746,6 @@ class peakSelector:
                 popt = None
                 pcov = None
 
-        # Showing the plots
-        plt.show()
 
         # Before returning, and for calibration purposes, we will find
         # all gaussian centroids and append them into a list

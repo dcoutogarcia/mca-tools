@@ -102,18 +102,17 @@ def calibration_helper(folder_path, bkg_file):
         file_path = os.path.join(folder_path, file)
         file_peaks_path = os.path.join(peaks_path, file)
         file_energies_path = os.path.join(energies_path, file)
+        file_output_path = os.path.join(output_path, file)
 
-        element = peakSelector(file_path, bkg_file = background_path)
+        element = peakSelector(file_path, bkg_file = background_path, bins_fused = 20)
 
         if not os.path.isfile(file_peaks_path):
 
-            while True:
-                element.select_peaks()
-
-
-            user_input = input(trans["cache peak info"][mca.lang])
+            element.select_peaks()
+            user_input = input(transl["cache peak info"][mca.lang])
             if user_input.lower() != "n":
                 element.save_peaks(file_peaks_path)
+                element.save_fit_info(file_output_path)
 
         else:
             element.load_peaks(file_peaks_path)
@@ -132,7 +131,7 @@ def calibration_helper(folder_path, bkg_file):
             element.set_peak_energies(gamma_energies)
 
             print("")
-            user_input = input(trans["cache energy info"][mca.lang])
+            user_input = input(transl["cache energy info"][mca.lang])
 
             if user_input.lower() != "n":
                 element.save_peak_energies(file_energies_path)
@@ -142,8 +141,6 @@ def calibration_helper(folder_path, bkg_file):
 
 
         elements.append(element)
-
-
 
     calibration(elements)
 

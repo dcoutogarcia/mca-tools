@@ -1,6 +1,8 @@
 import os
 import numpy as np
+
 from scipy.optimize import curve_fit
+from scipy.stats import chi2
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
@@ -621,6 +623,7 @@ class peakSelector:
 
         list_popt = []
         list_pcov = []
+        list_chi2 = []
 
         for peak in self.peak_positions:
 
@@ -655,8 +658,9 @@ class peakSelector:
 
                     # Now we compute the curve_fit (with additional kwargs or with auto p0)
                     if len(kwargs) == 0:
-                        popt, pcov = curve_fit(single_peak, x, y, p0=p0, sigma = sy)
+                        popt, pcov, infodict, mseg, ier = curve_fit(single_peak, x, y, p0=p0, sigma = sy, full_output = True)
                     else:
+                    # TODO: If full output is introduced as a kwarg, the program is going to raise an error
                         popt, pcov = curve_fit(single_peak, x, y, sigma = sy, **kwargs)
 
                     # We calculate the plotting points of the theoretical function.
@@ -688,10 +692,12 @@ class peakSelector:
 
                     p0 = [1,1,1,1, x_center_1, FWHM_1, 1, x_center_2, FWHM_2]
 
+
                     # Now we compute the curve_fit (with additional kwargs or with auto p0)
                     if len(kwargs) == 0:
-                        popt, pcov = curve_fit(double_peak, x, y, p0=p0, sigma = sy, )
+                        popt, pcov, infodict, mseg, ier = curve_fit(double_peak, x, y, p0=p0, sigma = sy, full_output = True)
                     else:
+                    # TODO: If full output is introduced as a kwarg, the program is going to raise an error
                         popt, pcov = curve_fit(double_peak, x, y, sigma = sy, **kwargs)
 
 
@@ -725,9 +731,14 @@ class peakSelector:
                         ax.set_ylabel(transl["rates"][mca.lang])
                         fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
+                # We compute chi2 and its degrees of freedom
+                chi2 = sum(infodict["fvec"]**2) # fvec = (y - f(x)) / sigma_i
+                deg_free = len(y) - len(popt) # Number of points - number of fitted params
+
                 # We append the values to the return list
                 list_pcov.append(pcov)
                 list_popt.append(popt)
+                list_chi2.append((chi2, deg_free))
 
             except RuntimeError:
                 print(transl["optimal parameters not found"][mca.lang])
@@ -761,16 +772,12 @@ class peakSelector:
 
 
         # We return the data
-        if len(list_pcov) == 1 and (list_popt) == 1:
-            return popt, pcov
-        else:
-            return list_popt, list_pcov
+        return list_popt, list_pcov, list_chi2
 
 
     def save_peaks(self, file_path):
         """
         Saves peak info to specified text file
-        absolute_path
         """
 
         # We check if the file exists
@@ -791,7 +798,6 @@ class peakSelector:
     def load_peaks(self, file_path):
         """
         Load peak data from specified file
-        absolute_path
         """
 
         with open(file_path, "r") as f:
@@ -847,7 +853,69 @@ class peakSelector:
                 peak_energies.append(float(line))
                 line = f.readline()
 
-        self.set_peak_energies(peak_energies)
+        self.set_peak_energies
+
+
+    def save_fit_info(self, file_path):
+        list_popt, list_pcov, list_chi2 = self.fit_peak(plotting = False)
+
+        # We check if the file exists
+        if os.path.exists(file_path):
+            user_input = (tranls["overwrite file?"][mca.lang])
+            if user_input.lower() != "y":
+                print(transl["cancelling operation"][mca.lang])
+                return
+            else:
+                print(transl["overwritting file"][mca.lang])
+
+
+        with open(file_path, "w") as f:
+
+            for i in range(len(list_popt)):
+                sigmas = np.sqrt(np.diag(list_pcov[i]))
+                f.write(f"Pico {i}:\n")
+                f.write("Parametros óptimos\n")
+                f.write(f"Fondo: {list_popt[i][0]}({sigmas[0]}) + {list_popt[i][1]}({sigmas[1]})*x + {list_popt[i][2]}({sigmas[2]})*x^2\n")
+
+                # Simple peak
+                if len(list_popt[i]) == 6:
+                    f.write("Pico:\n")
+                    f.write(f"Integral: {list_popt[i][3]}({sigmas[3]})\n") # I need to calculate the integral real value
+                    f.write(f"Centroide: {list_popt[i][4]}({sigmas[3]})\n")
+                    f.write(f"Sigma = {list_popt[i][5]}({sigmas[3]})\n")
+
+                # Double peak
+                elif len(list_popt[i]) == 9:
+                    f.write("Pico a:\n")
+                    f.write(f"Integral: {list_popt[i][3]}({sigmas[3]})\n") # I need to calculate the integral real value
+                    f.write(f"Centroide: {list_popt[i][4]}({sigmas[3]})\n")
+                    f.write(f"Sigma = {list_popt[i][5]}({sigmas[3]})\n")
+
+                    f.write("Pico b:\n")
+                    f.write(f"Integral: {list_popt[i][6]}({sigmas[6]})\n") # I need to calculate the integral real value
+                    f.write(f"Centroide: {list_popt[i][7]}({sigmas[7]})\n")
+                    f.write(f"Sigma = {list_popt[i][8]}({sigmas[8]})\n")
+
+                # Triple peak (pending implemetation)
+                elif len(list_popt[i]) == 12:
+                    f.write("Pico a:\n")
+                    f.write(f"Integral: {list_popt[i][3]}({sigmas[3]})\n") # I need to calculate the integral real value
+                    f.write(f"Centroide: {list_popt[i][4]}({sigmas[3]})\n")
+                    f.write(f"Sigma = {list_popt[i][5]}({sigmas[3]})\n")
+
+                    f.write("Pico b:\n")
+                    f.write(f"Integral: {list_popt[i][6]}({sigmas[6]})\n") # I need to calculate the integral real value
+                    f.write(f"Centroide: {list_popt[i][7]}({sigmas[7]})\n")
+                    f.write(f"Sigma = {list_popt[i][8]}({sigmas[8]})\n")
+
+                    f.write("Pico c:\n")
+                    f.write(f"Integral: {list_popt[i][9]}({sigmas[9]})\n") # I need to calculate the integral real value
+                    f.write(f"Centroide: {list_popt[i][10]}({sigmas[10]})\n")
+                    f.write(f"Sigma = {list_popt[i][11]}({sigmas[11]})\n")
+
+
+                f.write(f"Reduced Chi squared: {list_chi2[i][0] / list_chi2[i][1]}\n")
+                f.write(f"p-value(%): {100 * (1 - chi2.cdf(list_chi2[i][0], list_chi2[i][1]))}\n")
 
 
 

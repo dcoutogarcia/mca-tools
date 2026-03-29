@@ -540,7 +540,7 @@ class peakSelector:
 
         fig.canvas.mpl_connect('pick_event', click_event)
         fig.canvas.mpl_connect('close_event', close_event)
-        fig.show()
+        plt.show()
 
 
     def fit_peak(self, **kwargs):

@@ -1,4 +1,6 @@
 import os
+import pathlib
+
 import numpy as np
 from scipy.optimize import curve_fit
 
@@ -13,6 +15,8 @@ from .uncertainty import round_uncertainty
 import mca_tools as mca # lang as a global function
 
 
+# Current Working Directory, used later to get relative paths
+CWD = str(pathlib.Path().resolve())
 
 matplotlib.use("qtagg")
 
@@ -71,6 +75,9 @@ class peakSelector:
                  background radiation. If specified, the background
                  will be substracted from the main data.
 
+        fig_path: the path where figures will be automatically saved,
+                  relative to the CWD. Default: "/fig_path/"
+
     Methods:
     read_mca: reads the number of counts in each channel and the total
               time of the measurement.
@@ -108,6 +115,7 @@ class peakSelector:
 
         # User options
         self.bins_fused = 10 # Default number of bins fused in rebining
+        self.fig_path = "/fig_path/"
 
 
         # Peak info
@@ -132,7 +140,12 @@ class peakSelector:
                 self.load_peaks(val)
             elif k == "peak_energies":
                 self.set_peak_energies(val)
+            elif k == "fig_path":
+                self.fig_path = val
 
+        # Create a directory to store the figures (if it does not exist already)
+        if not pathlib.Path(CWD + self.fig_path).is_dir():
+            os.mkdir(CWD + self.fig_path)
 
         # Here we start the methods automaticaly, they can be used
         # anyway to modify default values.
@@ -166,7 +179,7 @@ class peakSelector:
         """
 
         with open(self.file_path, "r") as f:
-    
+
             time = None
             counts = []
             line = f.readline()
@@ -306,6 +319,11 @@ class peakSelector:
         ax.set_ylabel(transl["rates"][mca.lang])
         fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
+        # Save the plots
+        # fig_path/Bismuth_data_PLOT.pdf
+        fig_name = f"{pathlib.Path(self.file_path).stem}_PLOT.pdf"
+        fig.savefig(CWD + self.fig_path + fig_name)
+
         plt.show()
 
     def plot_errorbar(self):
@@ -319,6 +337,11 @@ class peakSelector:
         ax.set_xlabel(transl["channels"][mca.lang])
         ax.set_ylabel(transl["rates"][mca.lang])
         fig.suptitle(transl["gamma spectrogram"][mca.lang])
+
+        # Save the errorbar plots
+        # fig_path/Bismuth_data_ERRORBAR.pdf
+        fig_name = f"{pathlib.Path(self.file_path).stem}_ERRORBAR.pdf"
+        fig.savefig(CWD + self.fig_path + fig_name)
 
         plt.show()
 
@@ -725,6 +748,14 @@ class peakSelector:
                         ax.set_ylabel(transl["rates"][mca.lang])
                         fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
+                        # Save the plots
+                        # fig_path/Bismuth_data_FITPEAK_2560_2998_single.pdf
+                        fig_name = f"{pathlib.Path(self.file_path).stem}_FITPEAK_{peak[0][0]:.0f}_{peak[0][1]:.0f}_{peak[1]}.pdf"
+                        fig.savefig(CWD + self.fig_path + fig_name)
+
+                        # Showing the plots
+                        plt.show()
+
                 # We append the values to the return list
                 list_pcov.append(pcov)
                 list_popt.append(popt)
@@ -733,9 +764,6 @@ class peakSelector:
                 print(transl["optimal parameters not found"][mca.lang])
                 popt = None
                 pcov = None
-
-        # Showing the plots
-        plt.show()
 
         # Before returning, and for calibration purposes, we will find
         # all gaussian centroids and append them into a list
@@ -848,18 +876,3 @@ class peakSelector:
                 line = f.readline()
 
         self.set_peak_energies(peak_energies)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

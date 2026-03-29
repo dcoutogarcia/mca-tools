@@ -17,6 +17,7 @@ import mca_tools as mca # lang as a global function
 
 
 matplotlib.use("qtagg")
+# matplotlib.pyplot.set_loglevel("critical")
 
 """
 Resets the values of the last peak inserted in the plot. It does so
@@ -508,6 +509,8 @@ class peakSelector:
         fig, ax = plt.subplots()
         ax.bar(self.xbins, self.rates, self.delta_x, picker = True)
 
+        fig.suptitle(self.file_path.split("/")[-1].split(".")[0])
+
 
         # Here we add the interactive text
         max_xbins = max(self.xbins)
@@ -542,7 +545,7 @@ class peakSelector:
 
         fig.canvas.mpl_connect('pick_event', click_event)
         fig.canvas.mpl_connect('close_event', close_event)
-        fig.show()
+        plt.show()
 
 
     def fit_peak(self, **kwargs):
@@ -853,7 +856,7 @@ class peakSelector:
                 peak_energies.append(float(line))
                 line = f.readline()
 
-        self.set_peak_energies
+        self.set_peak_energies(peak_energies)
 
 
     def save_fit_info(self, file_path):
@@ -861,7 +864,7 @@ class peakSelector:
 
         # We check if the file exists
         if os.path.exists(file_path):
-            user_input = (tranls["overwrite file?"][mca.lang])
+            user_input = (transl["overwrite file?"][mca.lang])
             if user_input.lower() != "y":
                 print(transl["cancelling operation"][mca.lang])
                 return
@@ -916,6 +919,58 @@ class peakSelector:
 
                 f.write(f"Reduced Chi squared: {list_chi2[i][0] / list_chi2[i][1]}\n")
                 f.write(f"p-value(%): {100 * (1 - chi2.cdf(list_chi2[i][0], list_chi2[i][1]))}\n")
+
+
+
+
+    def print_fit_info(self):
+        list_popt, list_pcov, list_chi2 = self.fit_peak(plotting = False)
+
+        for i in range(len(list_popt)):
+            sigmas = np.sqrt(np.diag(list_pcov[i]))
+            print(f"Pico {i}:")
+            print("Parametros óptimos")
+            print(f"Fondo: {list_popt[i][0]}({sigmas[0]}) + {list_popt[i][1]}({sigmas[1]})*x + {list_popt[i][2]}({sigmas[2]})*x^2")
+
+            # Simple peak
+            if len(list_popt[i]) == 6:
+                print("Pico:")
+                print(f"Integral: {list_popt[i][3]}({sigmas[3]})") # I need to calculate the integral real value
+                print(f"Centroide: {list_popt[i][4]}({sigmas[3]})")
+                print(f"Sigma = {list_popt[i][5]}({sigmas[3]})")
+
+            # Double peak
+            elif len(list_popt[i]) == 9:
+                print("Pico a:")
+                print(f"Integral: {list_popt[i][3]}({sigmas[3]})") # I need to calculate the integral real value
+                print(f"Centroide: {list_popt[i][4]}({sigmas[3]})")
+                print(f"Sigma = {list_popt[i][5]}({sigmas[3]})")
+
+                print("Pico b:")
+                print(f"Integral: {list_popt[i][6]}({sigmas[6]})") # I need to calculate the integral real value
+                print(f"Centroide: {list_popt[i][7]}({sigmas[7]})")
+                print(f"Sigma = {list_popt[i][8]}({sigmas[8]})")
+
+            # Triple peak (pending implemetation)
+            elif len(list_popt[i]) == 12:
+                print("Pico a:")
+                print(f"Integral: {list_popt[i][3]}({sigmas[3]})") # I need to calculate the integral real value
+                print(f"Centroide: {list_popt[i][4]}({sigmas[3]})")
+                print(f"Sigma = {list_popt[i][5]}({sigmas[3]})")
+
+                print("Pico b:")
+                print(f"Integral: {list_popt[i][6]}({sigmas[6]})") # I need to calculate the integral real value
+                print(f"Centroide: {list_popt[i][7]}({sigmas[7]})")
+                print(f"Sigma = {list_popt[i][8]}({sigmas[8]})")
+
+                print("Pico c:")
+                print(f"Integral: {list_popt[i][9]}({sigmas[9]})") # I need to calculate the integral real value
+                print(f"Centroide: {list_popt[i][10]}({sigmas[10]})")
+                print(f"Sigma = {list_popt[i][11]}({sigmas[11]})")
+
+
+            print(f"Reduced Chi squared: {list_chi2[i][0] / list_chi2[i][1]}")
+            print(f"p-value(%): {100 * (1 - chi2.cdf(list_chi2[i][0], list_chi2[i][1]))}")
 
 
 

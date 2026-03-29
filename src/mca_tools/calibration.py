@@ -1,6 +1,8 @@
 from .peakSelector import peakSelector
 from .translations import translation_calibration as transl
-from .regresion import regresionPonderada
+
+from numpy.linalg import det
+import scipy.stats as stats
 
 import os
 from shutil import rmtree
@@ -8,6 +10,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mca_tools as mca
+
+
+def linear_regression(x,y,s):
+    """
+    Fits data into a linear equation  y = a + bx, taking into account
+    the uncertainties. It uses chi2 minimization.
+    """
+    w=1.0/(s*s)
+    wy=sum(w*y); wx=sum(w*x);
+    wxx=sum(w*x*x); wxy=sum(w*x*y); wyy=sum(w*y*y)
+    sw=sum(w)
+    d=det(np.array([[sw, wx],[wx, wxx]]))
+    a=(wy*wxx-wx*wxy)/d
+    b=(sw*wxy-wx*wy)/d
+    sa=np.sqrt(wxx/d); sb=np.sqrt(sw/d)
+    # r=(sw*wxy-wx*wy)/sqrt((sw*wxx-wx**2)*(sw*wyy-wy**2))
+
+    chi2 = 0
+    for xi, yi, si in zip(x,y,s):
+        chi2 += (((a + b * xi) - yi) / si) **2
+
+
+    red_chi2 = chi2 / (len(y) - 2)
+    p_value = (1 - stats.chi2.cdf(chi2, len(y) - 2))
+
+    print(red_chi2, p_value)
+    return [a, b, sa, sb, red_chi2, p_value]
 
 
 def calibration(element_list):
@@ -28,7 +57,7 @@ def calibration(element_list):
         energies = np.append(energies, element.peak_energies)
 
     # To add the channel uncertainty, we need to use the y axis for them
-    a, b, sa, sb, r = regresionPonderada(energies, channels, channels_uncertainty)
+    a, b, sa, sb, red_chi2, p_value = linear_regression(energies, channels, channels_uncertainty)
 
     # We now need to invert the calibration line, because we want to get energy from channels,
     # not backwards. For this, we will need to propagate uncertainties.
@@ -46,7 +75,8 @@ def calibration(element_list):
     ax.errorbar(channels, energies, xerr = channels_uncertainty, fmt=".")
     plt.show()
 
-    return new_a, new_b, new_sa, new_sb
+
+    return new_a, new_b, new_sa, new_sb, red_chi2, p_value
 
 
 def calibration_helper(folder_path, bkg_file):
@@ -104,11 +134,12 @@ def calibration_helper(folder_path, bkg_file):
         file_energies_path = os.path.join(energies_path, file)
         file_output_path = os.path.join(output_path, file)
 
-        element = peakSelector(file_path, bkg_file = background_path, bins_fused = 20)
+        element = peakSelector(file_path, bkg_file = background_path)
 
         if not os.path.isfile(file_peaks_path):
 
             element.select_peaks()
+            input()
             user_input = input(transl["cache peak info"][mca.lang])
             if user_input.lower() != "n":
                 element.save_peaks(file_peaks_path)
@@ -121,7 +152,7 @@ def calibration_helper(folder_path, bkg_file):
         # If there is no cached
         if not os.path.isfile(file_energies_path):
 
-            gamma_energies = input("").split()
+            gamma_energies = input(transl["write gamma energy"][mca.lang]).split()
 
             # Turning them into floats
             for i in range(len(gamma_energies)):
@@ -140,9 +171,10 @@ def calibration_helper(folder_path, bkg_file):
             element.load_peak_energies(file_energies_path)
 
 
+        element.print_fit_info()
         elements.append(element)
 
-    calibration(elements)
+    return calibration(elements)
 
 
 

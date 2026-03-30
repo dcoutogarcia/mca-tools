@@ -78,6 +78,8 @@ class peakSelector:
         fig_path: the path where figures will be automatically saved,
                   relative to the CWD. Default: "/fig_path/"
 
+        fig_ext: the file extension for the figures. Default: pdf.
+
     Methods:
     read_mca: reads the number of counts in each channel and the total
               time of the measurement.
@@ -116,6 +118,7 @@ class peakSelector:
         # User options
         self.bins_fused = 10 # Default number of bins fused in rebining
         self.fig_path = "/fig_path/"
+        self.fig_ext = "pdf"
 
 
         # Peak info
@@ -142,6 +145,8 @@ class peakSelector:
                 self.set_peak_energies(val)
             elif k == "fig_path":
                 self.fig_path = val
+            elif k == "fig_ext":
+                self.fig_ext = val
 
 
         # Here we start the methods automaticaly, they can be used
@@ -322,8 +327,8 @@ class peakSelector:
 
         # Save the plots
         # fig_path/Bismuth_data_PLOT.pdf
-        fig_name = f"{pathlib.Path(self.file_path).stem}_PLOT.pdf"
-        fig.savefig(CWD + self.fig_path + fig_name)
+        fig_name = f"{pathlib.Path(self.file_path).stem}_PLOT."
+        fig.savefig(CWD + self.fig_path + fig_name + self.fig_ext)
 
         plt.show()
 
@@ -344,8 +349,8 @@ class peakSelector:
 
         # Save the errorbar plots
         # fig_path/Bismuth_data_ERRORBAR.pdf
-        fig_name = f"{pathlib.Path(self.file_path).stem}_ERRORBAR.pdf"
-        fig.savefig(CWD + self.fig_path + fig_name)
+        fig_name = f"{pathlib.Path(self.file_path).stem}_ERRORBAR."
+        fig.savefig(CWD + self.fig_path + fig_name + self.fig_ext)
 
         plt.show()
 
@@ -757,8 +762,8 @@ class peakSelector:
 
                         # Save the plots
                         # fig_path/Bismuth_data_FITPEAK_2560_2998_single.pdf
-                        fig_name = f"{pathlib.Path(self.file_path).stem}_FITPEAK_{peak[0][0]:.0f}_{peak[0][1]:.0f}_{peak[1]}.pdf"
-                        fig.savefig(CWD + self.fig_path + fig_name)
+                        fig_name = f"{pathlib.Path(self.file_path).stem}_FITPEAK_{peak[0][0]:.0f}_{peak[0][1]:.0f}_{peak[1]}."
+                        fig.savefig(CWD + self.fig_path + fig_name + self.fig_ext)
 
                         # Showing the plots
                         plt.show()

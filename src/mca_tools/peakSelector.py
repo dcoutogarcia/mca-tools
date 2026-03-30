@@ -16,7 +16,7 @@ import mca_tools as mca # lang as a global function
 
 
 # Current Working Directory, used later to get relative paths
-CWD = str(pathlib.Path().resolve())
+CWD = pathlib.Path().resolve()
 
 matplotlib.use("qtagg")
 
@@ -76,7 +76,8 @@ class peakSelector:
                  will be substracted from the main data.
 
         fig_path: the path where figures will be automatically saved,
-                  relative to the CWD. Default: "/fig_path/"
+                  *relative* to the CWD. MUST end with a "/" (forward slash)
+                  Default: "fig_path/"
 
         fig_ext: the file extension for the figures. Default: pdf.
 
@@ -117,7 +118,7 @@ class peakSelector:
 
         # User options
         self.bins_fused = 10 # Default number of bins fused in rebining
-        self.fig_path = "/fig_path/"
+        self.fig_path = "fig_path/"
         self.fig_ext = "pdf"
 
 
@@ -322,13 +323,15 @@ class peakSelector:
         fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
         # Create a directory to store the figures (if it does not exist already)
-        if not pathlib.Path(CWD + self.fig_path).is_dir():
-            os.mkdir(CWD + self.fig_path)
+        if not (CWD / self.fig_path).is_dir():
+            os.mkdir(CWD / self.fig_path)
 
         # Save the plots
         # fig_path/Bismuth_data_PLOT.pdf
-        fig_name = f"{pathlib.Path(self.file_path).stem}_PLOT."
-        fig.savefig(CWD + self.fig_path + fig_name + self.fig_ext)
+        fig_name = pathlib.Path(self.file_path).stem
+        fig.savefig(
+            str(CWD / self.fig_path / fig_name) + f"_PLOT.{self.fig_ext}"
+        )
 
         plt.show()
 
@@ -344,13 +347,15 @@ class peakSelector:
         ax.set_ylabel(transl["rates"][mca.lang])
         fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
-        if not pathlib.Path(CWD + self.fig_path).is_dir():
-            os.mkdir(CWD + self.fig_path)
+        if not (CWD / self.fig_path).is_dir():
+            os.mkdir(CWD / self.fig_path)
 
         # Save the errorbar plots
         # fig_path/Bismuth_data_ERRORBAR.pdf
-        fig_name = f"{pathlib.Path(self.file_path).stem}_ERRORBAR."
-        fig.savefig(CWD + self.fig_path + fig_name + self.fig_ext)
+        fig_name = pathlib.Path(self.file_path).stem
+        fig.savefig(
+            str(CWD / self.fig_path / fig_name) + f"_ERRORBAR.{self.fig_ext}"
+        )
 
         plt.show()
 
@@ -757,13 +762,16 @@ class peakSelector:
                         ax.set_ylabel(transl["rates"][mca.lang])
                         fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
-                        if not pathlib.Path(CWD + self.fig_path).is_dir():
-                            os.mkdir(CWD + self.fig_path)
+                        if not (CWD / self.fig_path).is_dir():
+                            os.mkdir(CWD / self.fig_path)
 
                         # Save the plots
                         # fig_path/Bismuth_data_FITPEAK_2560_2998_single.pdf
-                        fig_name = f"{pathlib.Path(self.file_path).stem}_FITPEAK_{peak[0][0]:.0f}_{peak[0][1]:.0f}_{peak[1]}."
-                        fig.savefig(CWD + self.fig_path + fig_name + self.fig_ext)
+                        fig_name = pathlib.Path(self.file_path).stem
+                        fig.savefig(
+                            str(CWD / self.fig_path / fig_name)
+                            + f"_FITPEAK_{peak[0][0]:.0f}_{peak[0][1]:.0f}_{peak[1]}.{self.fig_ext}"
+                        )
 
                         # Showing the plots
                         plt.show()

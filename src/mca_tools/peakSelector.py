@@ -317,7 +317,7 @@ class peakSelector:
         """
 
         fig, ax = plt.subplots(1,1)
-        ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
+        ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".", capsize = 3, barsabove = True, ecolor = "black")
 
         ax.set_xlabel(transl["channels"][mca.lang])
         ax.set_ylabel(transl["rates"][mca.lang])
@@ -719,7 +719,7 @@ class peakSelector:
                         fig, ax = plt.subplots(1,1)
                         ax.plot(x_fit, y_fit, label = transl["fit"][mca.lang])
                         ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
-                        ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang])
+                        ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang], capsize = 6)
 
                         if peak[1] == "double":
                             ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])

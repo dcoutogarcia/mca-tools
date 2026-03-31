@@ -7,7 +7,6 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 import matplotlib
 import scienceplots
-import shutil
 
 from .translations import translation_peakSelector as transl
 from .uncertainty import round_uncertainty
@@ -300,13 +299,18 @@ class peakSelector:
         """
         Plots the current rates.
         """
+        with plt.style.context(mca.style):
+            plt.style.use(mca.style)
+            plt.rcParams.update({
+                'figure.dpi': '100', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
+                'font.size': 12.0
+            })
+            fig, ax = plt.subplots(1,1)
+            ax.bar(self.xbins, self.rates, self.delta_x)
 
-        fig, ax = plt.subplots(1,1)
-        ax.bar(self.xbins, self.rates, self.delta_x)
-
-        ax.set_xlabel(transl["channels"][mca.lang])
-        ax.set_ylabel(transl["rates"][mca.lang])
-        fig.suptitle(transl["gamma spectrogram"][mca.lang])
+            ax.set_xlabel(transl["channels"][mca.lang])
+            ax.set_ylabel(transl["rates"][mca.lang])
+            fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
         plt.show()
 
@@ -315,12 +319,18 @@ class peakSelector:
         Plots the current rates with errorbars
         """
 
-        fig, ax = plt.subplots(1,1)
-        ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
+        with plt.style.context(mca.style):
+            plt.style.use(mca.style)
+            plt.rcParams.update({
+                'figure.dpi': '100', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
+                'font.size': 12.0
+            })
+            fig, ax = plt.subplots(1,1)
+            ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
 
-        ax.set_xlabel(transl["channels"][mca.lang])
-        ax.set_ylabel(transl["rates"][mca.lang])
-        fig.suptitle(transl["gamma spectrogram"][mca.lang])
+            ax.set_xlabel(transl["channels"][mca.lang])
+            ax.set_ylabel(transl["rates"][mca.lang])
+            fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
         plt.show()
 
@@ -710,14 +720,10 @@ class peakSelector:
                     if k == "plotting" and val:
                         # We plot the result
 
-                        # Check if latex is installed to select the style
-                        if shutil.which('latex'):
-                            style = ['science', 'ieee']
-                        else:
-                            style = ['science',"no-latex",'ieee']
-                            
-                        with plt.style.context(style):
-                            plt.style.use(style)
+                        # Set the style. Style selection and latex installation
+                        # check is performed in __init__.py
+                        with plt.style.context(mca.style):
+                            plt.style.use(mca.style)
                             plt.rcParams.update({
                                 'figure.dpi': '100', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
                                 'font.size': 12.0

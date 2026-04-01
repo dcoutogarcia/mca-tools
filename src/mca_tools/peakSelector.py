@@ -349,10 +349,6 @@ class peakSelector:
         Plots the current rates with errorbars
         """
 
-<<<<<<< HEAD
-        fig, ax = plt.subplots(1,1)
-        ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".", capsize = 3, barsabove = True, ecolor = "black")
-=======
         with plt.style.context(mca.style):
             plt.style.use(mca.style)
             plt.rcParams.update({
@@ -361,7 +357,6 @@ class peakSelector:
             })
             fig, ax = plt.subplots(1,1)
             ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
->>>>>>> main
 
             ax.set_xlabel(transl["channels"][mca.lang])
             ax.set_ylabel(transl["rates"][mca.lang])

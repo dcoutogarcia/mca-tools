@@ -860,10 +860,20 @@ class peakSelector:
             dic.update({f"$p_{i}$": [print_uncertainty(list_popt[j][i],
                 np.sqrt(np.diag(list_pcov[j]))[i]) for j in range(len(list_pcov))]})
 
-        # Now we add the chi2
+        # Now we add the reduced chi2
+        dic.update({f"$chi^2_r$": [f"{list_chi2[j][0]:.3f}" for j in range(len(list_chi2))]})
 
-        dic.update({f"$chi^2_r$": [list_chi2[j][0] for j in range(len(list_chi2))]})
-        dic.update({f"p-value": [list_chi2[j][1] for j in range(len(list_chi2))]})
+        # For the p value, we format the data diferently taking into
+        # account how big the percentage is.
+        p_val_list = []
+        for i in range(len(list_chi2)):
+            p_value = list_chi2[i][1] * 100
+            if p_value < 1e-3:
+                p_val_list.append(f"{p_value:.2e}")
+            else:
+                p_val_list.append(f"{p_value:.2f}")
+
+        dic.update({f"p-value(%)": p_val_list})
 
         df = pd.DataFrame(dic)
 

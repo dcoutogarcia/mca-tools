@@ -144,7 +144,7 @@ translation_peakSelector = {
     "points": {
         "en": "Experimental points",
         "es": "Puntos experimentales",
-        "gl": "Experimental points",
+        "gl": "Puntos experimentais",
     },
 
 }

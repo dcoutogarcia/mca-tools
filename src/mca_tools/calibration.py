@@ -70,10 +70,17 @@ def calibration(element_list):
     x = np.linspace(min(channels), max(channels), 100)
     y = new_a + new_b * x
 
-    fig, ax = plt.subplots(1,1)
-    ax.plot(x,y)
-    ax.errorbar(channels, energies, xerr = channels_uncertainty, fmt=".")
-    plt.show()
+    with plt.style.context(mca.style):
+        plt.style.use(mca.style)
+        plt.rcParams.update({
+            'figure.dpi': '100',
+            'font.size': 12.0
+        })
+        fig, ax = plt.subplots(1,1)
+        ax.plot(x,y)
+        ax.errorbar(channels, energies, xerr = channels_uncertainty, fmt=".")
+
+        plt.show()
 
 
     return new_a, new_b, new_sa, new_sb, red_chi2, p_value

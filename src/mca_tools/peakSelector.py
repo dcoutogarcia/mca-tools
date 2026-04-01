@@ -1,4 +1,6 @@
 import os
+import pathlib
+
 import numpy as np
 
 from scipy.optimize import curve_fit
@@ -8,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 import matplotlib
+import scienceplots
 
 from .translations import translation_peakSelector as transl
 from .uncertainty import round_uncertainty
@@ -15,6 +18,8 @@ from .uncertainty import round_uncertainty
 import mca_tools as mca # lang as a global function
 
 
+# Current Working Directory, used later to get relative paths
+CWD = pathlib.Path().resolve()
 
 matplotlib.use("qtagg")
 # matplotlib.pyplot.set_loglevel("critical")
@@ -74,6 +79,12 @@ class peakSelector:
                  background radiation. If specified, the background
                  will be substracted from the main data.
 
+        fig_path: the path where figures will be automatically saved,
+                  *relative* to the CWD. MUST end with a "/" (forward slash)
+                  Default: "fig_path/"
+
+        fig_ext: the file extension for the figures. Default: pdf.
+
     Methods:
     read_mca: reads the number of counts in each channel and the total
               time of the measurement.
@@ -111,6 +122,8 @@ class peakSelector:
 
         # User options
         self.bins_fused = 10 # Default number of bins fused in rebining
+        self.fig_path = "fig_path/"
+        self.fig_ext = "pdf"
 
 
         # Peak info
@@ -135,6 +148,10 @@ class peakSelector:
                 self.load_peaks(val)
             elif k == "peak_energies":
                 self.set_peak_energies(val)
+            elif k == "fig_path":
+                self.fig_path = val
+            elif k == "fig_ext":
+                self.fig_ext = val
 
 
         # Here we start the methods automaticaly, they can be used
@@ -169,7 +186,7 @@ class peakSelector:
         """
 
         with open(self.file_path, "r") as f:
-    
+
             time = None
             counts = []
             line = f.readline()
@@ -301,27 +318,64 @@ class peakSelector:
         """
         Plots the current rates.
         """
+        with plt.style.context(mca.style):
+            plt.style.use(mca.style)
+            plt.rcParams.update({
+                'figure.dpi': '120', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
+                'font.size': 12.0
+            })
+            fig, ax = plt.subplots(1,1)
+            ax.bar(self.xbins, self.rates, self.delta_x)
 
-        fig, ax = plt.subplots(1,1)
-        ax.bar(self.xbins, self.rates, self.delta_x)
+            ax.set_xlabel(transl["channels"][mca.lang])
+            ax.set_ylabel(transl["rates"][mca.lang])
+            fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
-        ax.set_xlabel(transl["channels"][mca.lang])
-        ax.set_ylabel(transl["rates"][mca.lang])
-        fig.suptitle(transl["gamma spectrogram"][mca.lang])
+            # Create a directory to store the figures (if it does not exist already)
+            if not (CWD / self.fig_path).is_dir():
+                os.mkdir(CWD / self.fig_path)
 
-        plt.show()
+            # Save the plots
+            # fig_path/Bismuth_data_PLOT.pdf
+            fig_name = pathlib.Path(self.file_path).stem
+            fig.savefig(
+                str(CWD / self.fig_path / fig_name) + f"_PLOT.{self.fig_ext}"
+            )
+
+            plt.show()
 
     def plot_errorbar(self):
         """
         Plots the current rates with errorbars
         """
 
+<<<<<<< HEAD
         fig, ax = plt.subplots(1,1)
         ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".", capsize = 3, barsabove = True, ecolor = "black")
+=======
+        with plt.style.context(mca.style):
+            plt.style.use(mca.style)
+            plt.rcParams.update({
+                'figure.dpi': '120',
+                'font.size': 12.0
+            })
+            fig, ax = plt.subplots(1,1)
+            ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
+>>>>>>> main
 
-        ax.set_xlabel(transl["channels"][mca.lang])
-        ax.set_ylabel(transl["rates"][mca.lang])
-        fig.suptitle(transl["gamma spectrogram"][mca.lang])
+            ax.set_xlabel(transl["channels"][mca.lang])
+            ax.set_ylabel(transl["rates"][mca.lang])
+            fig.suptitle(transl["gamma spectrogram"][mca.lang])
+
+            if not (CWD / self.fig_path).is_dir():
+                os.mkdir(CWD / self.fig_path)
+
+            # Save the errorbar plots
+            # fig_path/Bismuth_data_ERRORBAR.pdf
+            fig_name = pathlib.Path(self.file_path).stem
+            fig.savefig(
+                str(CWD / self.fig_path / fig_name) + f"_ERRORBAR.{self.fig_ext}"
+            )
 
         plt.show()
 
@@ -716,23 +770,49 @@ class peakSelector:
                 for k, val in non_fit_kwargs.items():
                     if k == "plotting" and val:
                         # We plot the result
-                        fig, ax = plt.subplots(1,1)
-                        ax.plot(x_fit, y_fit, label = transl["fit"][mca.lang])
-                        ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
-                        ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang], capsize = 6)
 
-                        if peak[1] == "double":
-                            ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
-                            ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
+                        # Set the style. Style selection and latex installation
+                        # check is performed in __init__.py
+                        with plt.style.context(mca.style):
+                            plt.style.use(mca.style)
+                            print(plt.rcParams.keys())
+                            plt.rcParams.update({
+                                'figure.dpi': '250',
+                                'figure.figsize': [7.5, 6.5],
+                                'figure.constrained_layout.use': True,
+                                'font.size': 12.0
+                            })
+                            fig, ax = plt.subplots(1,1)
+                            ax.plot(x_fit, y_fit, label = transl["fit"][mca.lang])
+                            ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
+                            ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang])
 
-                        else:
-                            ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
+                            if peak[1] == "double":
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
+                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
+
+                            else:
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
 
 
-                        ax.legend()
-                        ax.set_xlabel(transl["channels"][mca.lang])
-                        ax.set_ylabel(transl["rates"][mca.lang])
-                        fig.suptitle(transl["gamma spectrogram"][mca.lang])
+                            ax.legend()
+                            ax.set_xlabel(transl["channels"][mca.lang])
+                            ax.set_ylabel(transl["rates"][mca.lang])
+                            fig.suptitle(transl["gamma spectrogram"][mca.lang])
+
+                            if not (CWD / self.fig_path).is_dir():
+                                os.mkdir(CWD / self.fig_path)
+
+                            # Save the plots
+                            # fig_path/Bismuth_data_FITPEAK_2560_2998_single.pdf
+                            fig_name = pathlib.Path(self.file_path).stem
+                            fig.savefig(
+                                str(CWD / self.fig_path / fig_name)
+                                + f"_FITPEAK_{peak[0][0]:.0f}_{peak[0][1]:.0f}_{peak[1]}.{self.fig_ext}"
+                            )
+
+                            # Showing the plots
+                            plt.show()
 
                 # We compute chi2 and its degrees of freedom
                 chi2 = sum(infodict["fvec"]**2) # fvec = (y - f(x)) / sigma_i
@@ -748,8 +828,6 @@ class peakSelector:
                 popt = None
                 pcov = None
 
-        # Showing the plots
-        plt.show()
 
         # Before returning, and for calibration purposes, we will find
         # all gaussian centroids and append them into a list
@@ -971,18 +1049,3 @@ class peakSelector:
 
             print(f"Reduced Chi squared: {list_chi2[i][0] / list_chi2[i][1]}")
             print(f"p-value(%): {100 * (1 - chi2.cdf(list_chi2[i][0], list_chi2[i][1]))}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

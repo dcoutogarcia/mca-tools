@@ -4,16 +4,16 @@ import pathlib
 import numpy as np
 
 from scipy.optimize import curve_fit
-from scipy.stats import chi2
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 import matplotlib
 import scienceplots
+import pandas as pd
 
 from .translations import translation_peakSelector as transl
-from .uncertainty import round_uncertainty
+from .uncertainty import round_uncertainty, print_uncertainty, get_pvalue
 
 import mca_tools as mca # lang as a global function
 
@@ -83,7 +83,11 @@ class peakSelector:
                   *relative* to the CWD. MUST end with a "/" (forward slash)
                   Default: "fig_path/"
 
-        fig_ext: the file extension for the figures. Default: pdf.
+        fig_ext: the file extension for the figures. Default: pdf
+
+        csv_path: the path where CSVs will be automatically saved,
+                  *relative* to the CWD. MUST end with a "/" (forward slash)
+                  Default: "fig_path/"
 
     Methods:
     read_mca: reads the number of counts in each channel and the total
@@ -124,6 +128,7 @@ class peakSelector:
         self.bins_fused = 10 # Default number of bins fused in rebining
         self.fig_path = "fig_path/"
         self.fig_ext = "pdf"
+        self.csv_path = "csv_path/"
 
 
         # Peak info
@@ -152,6 +157,8 @@ class peakSelector:
                 self.fig_path = val
             elif k == "fig_ext":
                 self.fig_ext = val
+            elif k == "csv_path":
+                self.csv_path = val
 
 
         # Here we start the methods automaticaly, they can be used
@@ -333,7 +340,7 @@ class peakSelector:
 
             # Create a directory to store the figures (if it does not exist already)
             if not (CWD / self.fig_path).is_dir():
-                os.mkdir(CWD / self.fig_path)
+                os.makedirs(CWD / self.fig_path)
 
             # Save the plots
             # fig_path/Bismuth_data_PLOT.pdf
@@ -363,7 +370,7 @@ class peakSelector:
             fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
             if not (CWD / self.fig_path).is_dir():
-                os.mkdir(CWD / self.fig_path)
+                os.makedirs(CWD / self.fig_path)
 
             # Save the errorbar plots
             # fig_path/Bismuth_data_ERRORBAR.pdf
@@ -770,7 +777,6 @@ class peakSelector:
                         # check is performed in __init__.py
                         with plt.style.context(mca.style):
                             plt.style.use(mca.style)
-                            print(plt.rcParams.keys())
                             plt.rcParams.update({
                                 'figure.dpi': '250',
                                 'figure.figsize': [7.5, 6.5],
@@ -796,7 +802,7 @@ class peakSelector:
                             fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
                             if not (CWD / self.fig_path).is_dir():
-                                os.mkdir(CWD / self.fig_path)
+                                os.makedirs(CWD / self.fig_path)
 
                             # Save the plots
                             # fig_path/Bismuth_data_FITPEAK_2560_2998_single.pdf
@@ -811,12 +817,14 @@ class peakSelector:
 
                 # We compute chi2 and its degrees of freedom
                 chi2 = sum(infodict["fvec"]**2) # fvec = (y - f(x)) / sigma_i
-                deg_free = len(y) - len(popt) # Number of points - number of fitted params
+                DoF = len(y) - len(popt) # Number of points - number of fitted params (degrees of freedom)
 
                 # We append the values to the return list
                 list_pcov.append(pcov)
                 list_popt.append(popt)
-                list_chi2.append((chi2, deg_free))
+                list_chi2.append(get_pvalue(chi2, DoF))
+
+
 
             except RuntimeError:
                 print(transl["optimal parameters not found"][mca.lang])
@@ -846,6 +854,31 @@ class peakSelector:
         self.peak_channels = [v1 for v1, v2 in sorted_pairs]
         self.peak_channels_uncertainty = [v2 for v1, v2 in sorted_pairs]
 
+        # We build the DataFrame
+        dic = {}
+        for i in range(len(list_pcov[0])):
+            dic.update({f"$p_{i}$": [print_uncertainty(list_popt[j][i],
+                np.sqrt(np.diag(list_pcov[j]))[i]) for j in range(len(list_pcov))]})
+
+        # Now we add the chi2
+
+        dic.update({f"$chi^2_r$": [list_chi2[j][0] for j in range(len(list_chi2))]})
+        dic.update({f"p-value": [list_chi2[j][1] for j in range(len(list_chi2))]})
+
+        df = pd.DataFrame(dic)
+
+
+        # Create a directory to store the csv (if it does not exist already)
+        if not (CWD / self.csv_path).is_dir():
+            os.makedirs(CWD / self.csv_path)
+
+        # Save the csv
+        # csv_path/Bismuth_data.csv
+        csv_name = pathlib.Path(self.file_path).stem
+        df.to_csv(
+            str(CWD / self.csv_path / csv_name) + ".csv",
+            index = False
+        )
 
         # We return the data
         return list_popt, list_pcov, list_chi2
@@ -930,117 +963,3 @@ class peakSelector:
                 line = f.readline()
 
         self.set_peak_energies(peak_energies)
-
-
-    def save_fit_info(self, file_path):
-        list_popt, list_pcov, list_chi2 = self.fit_peak(plotting = False)
-
-        # We check if the file exists
-        if os.path.exists(file_path):
-            user_input = (transl["overwrite file?"][mca.lang])
-            if user_input.lower() != "y":
-                print(transl["cancelling operation"][mca.lang])
-                return
-            else:
-                print(transl["overwritting file"][mca.lang])
-
-
-        with open(file_path, "w") as f:
-
-            for i in range(len(list_popt)):
-                sigmas = np.sqrt(np.diag(list_pcov[i]))
-                f.write(f"Pico {i}:\n")
-                f.write("Parametros óptimos\n")
-                f.write(f"Fondo: {list_popt[i][0]}({sigmas[0]}) + {list_popt[i][1]}({sigmas[1]})*x + {list_popt[i][2]}({sigmas[2]})*x^2\n")
-
-                # Simple peak
-                if len(list_popt[i]) == 6:
-                    f.write("Pico:\n")
-                    f.write(f"Integral: {list_popt[i][3]}({sigmas[3]})\n") # I need to calculate the integral real value
-                    f.write(f"Centroide: {list_popt[i][4]}({sigmas[3]})\n")
-                    f.write(f"Sigma = {list_popt[i][5]}({sigmas[3]})\n")
-
-                # Double peak
-                elif len(list_popt[i]) == 9:
-                    f.write("Pico a:\n")
-                    f.write(f"Integral: {list_popt[i][3]}({sigmas[3]})\n") # I need to calculate the integral real value
-                    f.write(f"Centroide: {list_popt[i][4]}({sigmas[3]})\n")
-                    f.write(f"Sigma = {list_popt[i][5]}({sigmas[3]})\n")
-
-                    f.write("Pico b:\n")
-                    f.write(f"Integral: {list_popt[i][6]}({sigmas[6]})\n") # I need to calculate the integral real value
-                    f.write(f"Centroide: {list_popt[i][7]}({sigmas[7]})\n")
-                    f.write(f"Sigma = {list_popt[i][8]}({sigmas[8]})\n")
-
-                # Triple peak (pending implemetation)
-                elif len(list_popt[i]) == 12:
-                    f.write("Pico a:\n")
-                    f.write(f"Integral: {list_popt[i][3]}({sigmas[3]})\n") # I need to calculate the integral real value
-                    f.write(f"Centroide: {list_popt[i][4]}({sigmas[3]})\n")
-                    f.write(f"Sigma = {list_popt[i][5]}({sigmas[3]})\n")
-
-                    f.write("Pico b:\n")
-                    f.write(f"Integral: {list_popt[i][6]}({sigmas[6]})\n") # I need to calculate the integral real value
-                    f.write(f"Centroide: {list_popt[i][7]}({sigmas[7]})\n")
-                    f.write(f"Sigma = {list_popt[i][8]}({sigmas[8]})\n")
-
-                    f.write("Pico c:\n")
-                    f.write(f"Integral: {list_popt[i][9]}({sigmas[9]})\n") # I need to calculate the integral real value
-                    f.write(f"Centroide: {list_popt[i][10]}({sigmas[10]})\n")
-                    f.write(f"Sigma = {list_popt[i][11]}({sigmas[11]})\n")
-
-
-                f.write(f"Reduced Chi squared: {list_chi2[i][0] / list_chi2[i][1]}\n")
-                f.write(f"p-value(%): {100 * (1 - chi2.cdf(list_chi2[i][0], list_chi2[i][1]))}\n")
-
-
-
-
-    def print_fit_info(self):
-        list_popt, list_pcov, list_chi2 = self.fit_peak(plotting = False)
-
-        for i in range(len(list_popt)):
-            sigmas = np.sqrt(np.diag(list_pcov[i]))
-            print(f"Pico {i}:")
-            print("Parametros óptimos")
-            print(f"Fondo: {list_popt[i][0]}({sigmas[0]}) + {list_popt[i][1]}({sigmas[1]})*x + {list_popt[i][2]}({sigmas[2]})*x^2")
-
-            # Simple peak
-            if len(list_popt[i]) == 6:
-                print("Pico:")
-                print(f"Integral: {list_popt[i][3]}({sigmas[3]})") # I need to calculate the integral real value
-                print(f"Centroide: {list_popt[i][4]}({sigmas[3]})")
-                print(f"Sigma = {list_popt[i][5]}({sigmas[3]})")
-
-            # Double peak
-            elif len(list_popt[i]) == 9:
-                print("Pico a:")
-                print(f"Integral: {list_popt[i][3]}({sigmas[3]})") # I need to calculate the integral real value
-                print(f"Centroide: {list_popt[i][4]}({sigmas[3]})")
-                print(f"Sigma = {list_popt[i][5]}({sigmas[3]})")
-
-                print("Pico b:")
-                print(f"Integral: {list_popt[i][6]}({sigmas[6]})") # I need to calculate the integral real value
-                print(f"Centroide: {list_popt[i][7]}({sigmas[7]})")
-                print(f"Sigma = {list_popt[i][8]}({sigmas[8]})")
-
-            # Triple peak (pending implemetation)
-            elif len(list_popt[i]) == 12:
-                print("Pico a:")
-                print(f"Integral: {list_popt[i][3]}({sigmas[3]})") # I need to calculate the integral real value
-                print(f"Centroide: {list_popt[i][4]}({sigmas[3]})")
-                print(f"Sigma = {list_popt[i][5]}({sigmas[3]})")
-
-                print("Pico b:")
-                print(f"Integral: {list_popt[i][6]}({sigmas[6]})") # I need to calculate the integral real value
-                print(f"Centroide: {list_popt[i][7]}({sigmas[7]})")
-                print(f"Sigma = {list_popt[i][8]}({sigmas[8]})")
-
-                print("Pico c:")
-                print(f"Integral: {list_popt[i][9]}({sigmas[9]})") # I need to calculate the integral real value
-                print(f"Centroide: {list_popt[i][10]}({sigmas[10]})")
-                print(f"Sigma = {list_popt[i][11]}({sigmas[11]})")
-
-
-            print(f"Reduced Chi squared: {list_chi2[i][0] / list_chi2[i][1]}")
-            print(f"p-value(%): {100 * (1 - chi2.cdf(list_chi2[i][0], list_chi2[i][1]))}")

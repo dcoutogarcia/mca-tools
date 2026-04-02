@@ -63,6 +63,12 @@ translation_peakSelector = {
         "gl": "Pico dobre",
     },
 
+    "mark as triple" : {
+        "en": "Mark as triple",
+        "es": "Pico triple",
+        "gl": "Pico triple",
+    },
+
     "reset peak": {
         "en": "Reset peak",
         "es": "Reiniciar pico",
@@ -133,6 +139,12 @@ translation_peakSelector = {
         "en": "Gaussian peak 2",
         "es": "Pico gaussiano 2",
         "gl": "Pico gaussiano 2",
+    },
+
+    "gauss 3": {
+        "en": "Gaussian peak 3",
+        "es": "Pico gaussiano 3",
+        "gl": "Pico gaussiano 3",
     },
 
     "background": {

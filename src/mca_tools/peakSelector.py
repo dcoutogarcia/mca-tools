@@ -425,6 +425,16 @@ class peakSelector:
 
                 # Now we can repeat the previous process
 
+            elif peak[1] == "triple":
+                # We search for the maximum height in the second third of
+                # the channels
+
+                y_center = max(rates_peak[len(xbins_peak) // 3 : 2 * len(xbins_peak) // 3])
+                x_center = xbins_peak[find_nearest(rates_peak, y_center)] # we find the equivalent x
+
+                # Now we can repeat the previous process
+
+
             # Now, we look for the peak_limit that is farther away.
             # We save the greatest distance and the index of the
             # item that is closer to the peak.
@@ -554,6 +564,10 @@ class peakSelector:
                     save_peak_type("double")
                     fig.canvas.draw()
 
+                elif text == transl["mark as triple"][mca.lang]:
+                    save_peak_type("triple")
+                    fig.canvas.draw()
+
         def close_event(event):
             if peak_positions[-1][1] == None:
                 self.peak_positions = peak_positions[:-1]
@@ -582,6 +596,10 @@ class peakSelector:
 
         ax.text(0.7 * max_xbins, 0.75 * max_rates,
                 transl["mark as double"][mca.lang], picker = True,
+                size="large", style = "italic")
+
+        ax.text(0.7 * max_xbins, 0.65 * max_rates,
+                transl["mark as triple"][mca.lang], picker = True,
                 size="large", style = "italic")
 
 
@@ -664,6 +682,16 @@ class peakSelector:
             gaussian_func2 = gaussian_peak(x, p6, p7, p8)
             return bkg_func + gaussian_func1 + gaussian_func2
 
+        def triple_peak(x, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11):
+            """
+            Functional form of a double gaussian with polynomial background
+            """
+            bkg_func = polynomial_background(x, p0, p1, p2)
+            gaussian_func1 = gaussian_peak(x, p3, p4, p5)
+            gaussian_func2 = gaussian_peak(x, p6, p7, p8)
+            gaussian_func3 = gaussian_peak(x, p9, p10, p11)
+            return bkg_func + gaussian_func1 + gaussian_func2 + gaussian_func3
+
         def get_FWHM(x_center, xbins, rates):
             """
             Computes an aproximate value of FWHM
@@ -744,7 +772,7 @@ class peakSelector:
                     # Now we compute the FWHM (Full Width at Half Maximum).
                     # Sigma is related to the FWHM: 2.35 * sigma = FWHM
                     FWHM_1 = get_FWHM(x_center_1, x_1, y_1)
-                    FWHM_2 = get_FWHM(x_center_1, x_1, y_1)
+                    FWHM_2 = get_FWHM(x_center_2, x_2, y_2)
 
                     # We estimate the parameters. The most important are
                     # the center and sigma, the other ones can be initialized as 1
@@ -767,6 +795,52 @@ class peakSelector:
                     y_gauss_1 = gaussian_peak(x_fit, popt[3], popt[4], popt[5])
                     y_gauss_2 = gaussian_peak(x_fit, popt[6], popt[7], popt[8])
 
+                elif peak[1] == "triple":
+                    # Firstly, we need the x values of the peak centers.
+
+                    # We split the list in three, one for each peak
+                    x_1 = x[: len(x) // 3]
+                    x_2 = x[len(x) // 3 : 2 * len(x) // 3]
+                    x_3 = x[2 * len(x) // 3:]
+
+                    y_1 = y[: len(x) // 3]
+                    y_2 = y[len(x) // 3 : 2 * len(x) // 3]
+                    y_3 = y[2 * len(x) // 3:]
+
+                    # We locate the x values of each peak:
+                    x_center_1 = x_1[find_nearest(y_1, max(y_1))]
+                    x_center_2 = x_2[find_nearest(y_2, max(y_2))]
+                    x_center_3 = x_3[find_nearest(y_3, max(y_3))]
+
+                    # Now we compute the FWHM (Full Width at Half Maximum).
+                    # Sigma is related to the FWHM: 2.35 * sigma = FWHM
+                    FWHM_1 = get_FWHM(x_center_1, x_1, y_1)
+                    FWHM_2 = get_FWHM(x_center_2, x_2, y_2)
+                    FWHM_3 = get_FWHM(x_center_3, x_3, y_3)
+
+                    # We estimate the parameters. The most important are
+                    # the center and sigma, the other ones can be initialized as 1
+
+                    p0 = [1,1,1,1, x_center_1, FWHM_1,
+                          1, x_center_2, FWHM_2,
+                          1, x_center_3, FWHM_3]
+
+                    # Now we compute the curve_fit (with additional kwargs or with auto p0)
+                    if len(kwargs) == 0:
+                        popt, pcov, infodict, mseg, ier = curve_fit(triple_peak, x, y, p0=p0, sigma = sy, full_output = True)
+                    else:
+                    # TODO: If full output is introduced as a kwarg, the program is going to raise an error
+                        popt, pcov = curve_fit(double_peak, x, y, sigma = sy, **kwargs)
+
+
+                    # We calculate the plotting points of the theoretical function.
+                    y_fit = triple_peak(x_fit, popt[0], popt[1], popt[2], popt[3],
+                                popt[4], popt[5], popt[6], popt[7], popt[8],
+                                popt[9], popt[10], popt[11])
+                    y_background = polynomial_background(x_fit, popt[0], popt[1], popt[2])
+                    y_gauss_1 = gaussian_peak(x_fit, popt[3], popt[4], popt[5])
+                    y_gauss_2 = gaussian_peak(x_fit, popt[6], popt[7], popt[8])
+                    y_gauss_3 = gaussian_peak(x_fit, popt[9], popt[10], popt[11])
 
                 # We only plot if plotting it's true (default value)
                 for k, val in non_fit_kwargs.items():
@@ -788,12 +862,18 @@ class peakSelector:
                             ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
                             ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang])
 
-                            if peak[1] == "double":
+                            if peak[1] == "single":
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
+
+                            elif peak[1] == "double":
                                 ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
                                 ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
 
-                            else:
-                                ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
+                            elif peak[1] == "triple":
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
+                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
+                                ax.plot(x_fit, y_gauss_3, label = transl["gauss 3"][mca.lang])
+
 
 
                             ax.legend()

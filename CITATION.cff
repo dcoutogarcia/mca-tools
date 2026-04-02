@@ -1,0 +1,21 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: mca-tools
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Diego
+    family-names: Couto García
+    email: mail@diegocoutogarcia.com
+repository-code: 'https://github.com/dcoutogarcia/mca-tools'
+abstract: >-
+  A set of tools to postprocess the data of a spectrogram
+  made with a Multichannel analyzer (mca) 
+license: GPL-3.0
+commit: 08b9728
+version: '0.5'
+date-released: '2026-04-02'

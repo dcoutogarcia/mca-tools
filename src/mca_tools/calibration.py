@@ -170,7 +170,6 @@ def calibration_helper(folder_path, bkg_file = None, **kwargs):
             user_input = input(transl["cache peak info"][mca.lang])
             if user_input.lower() != "n":
                 element.save_peaks(file_peaks_path)
-                element.save_fit_info(file_output_path)
 
         else:
             element.load_peaks(file_peaks_path)

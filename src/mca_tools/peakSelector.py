@@ -708,9 +708,16 @@ class peakSelector:
             FWHM = abs(x_FWHM - x_center)
             return FWHM
 
+        # Parameter lists for each peak
         list_popt = []
         list_pcov = []
         list_chi2 = []
+
+        # Before returning, and for calibration purposes, we will find
+        # all gaussian centroids and append them into a list
+        peak_channels = []
+        peak_channels_uncertainty = []
+
 
         for peak in self.peak_positions:
 
@@ -905,58 +912,100 @@ class peakSelector:
                 list_chi2.append(get_pvalue(chi2, DoF))
 
 
+                # Now, we manage the peak data, we save it to pass the list
+                # to calibration() function.
+                if peak[1] == "single":
+                    peak_channels.append(popt[4])
+                    peak_channels_uncertainty.append(pcov[4,4])
+
+                elif peak[1] == "double":
+                    peak_channels.append(popt[4])
+                    peak_channels_uncertainty.append(pcov[4,4])
+
+                    peak_channels.append(popt[7])
+                    peak_channels_uncertainty.append(pcov[7,7])
+
+                elif peak[1] == "triple": # list index out of range?
+                    peak_channels.append(popt[4])
+                    peak_channels_uncertainty.append(pcov[4,4])
+
+                    peak_channels.append(popt[7])
+                    peak_channels_uncertainty.append(pcov[7,7])
+
+                    peak_channels.append(popt[10])
+                    peak_channels_uncertainty.append(pcov[10,10])
+
+
 
             except RuntimeError:
                 print(transl["optimal parameters not found"][mca.lang])
-                popt = None
-                pcov = None
 
 
-        # Before returning, and for calibration purposes, we will find
-        # all gaussian centroids and append them into a list
-        peak_channels = []
-        peak_channels_uncertainty = []
-
-        for i in range(len(list_pcov)):
-            if peak[1] == "single":
-                peak_channels.append(list_popt[i][4])
-                peak_channels_uncertainty.append(list_pcov[i][4,4])
-
-            elif peak[1] == "double":
-                peak_channels.append(list_popt[i][4])
-                peak_channels_uncertainty.append(list_pcov[i][4,4])
-
-                peak_channels.append(list_popt[i][7])
-                peak_channels_uncertainty.append(list_pcov[i][7,7])
-
-
+        # We save the channels in order
         sorted_pairs = sorted(zip(peak_channels, peak_channels_uncertainty))
         self.peak_channels = [v1 for v1, v2 in sorted_pairs]
         self.peak_channels_uncertainty = [v2 for v1, v2 in sorted_pairs]
 
-        # We build the DataFrame
-        dic = {}
-        for i in range(len(list_pcov[0])):
-            dic.update({f"$p_{i}$": [print_uncertainty(list_popt[j][i],
-                np.sqrt(np.diag(list_pcov[j]))[i]) for j in range(len(list_pcov))]})
+        # We build the DataFrame. Firstly, we save the background info,
+        # because it is common to all multipeak fits.
 
-        # Now we add the reduced chi2
-        dic.update({f"$chi^2_r$": [f"{list_chi2[j][0]:.3f}" for j in range(len(list_chi2))]})
+        # An auxiliary function to format p_value
+        def print_pvalue(p_value):
+            p_value = 100 * p_value
 
-        # For the p value, we format the data diferently taking into
-        # account how big the percentage is.
-        p_val_list = []
-        for i in range(len(list_chi2)):
-            p_value = list_chi2[i][1] * 100
             if p_value < 1e-3:
-                p_val_list.append(f"{p_value:.2e}")
+                return f"{p_value:.2e}"
             else:
-                p_val_list.append(f"{p_value:.2f}")
+                return f"{p_value:.3f}"
 
-        dic.update({f"p-value(%)": p_val_list})
+        # Here, the dataframe columns will be saved
+        dic_df = {}
+        formatted_params = [[],[],[],[],[],[]] # We only want the columns corresponding to a single peak
+        formatted_chi2 = []
+        formatted_pvalue = []
+        for popt, pcov, chi2 in zip(list_popt, list_pcov, list_chi2):
+            params_uncert = np.sqrt(np.diag(pcov))
 
-        df = pd.DataFrame(dic)
+            # Now all depends on the number of parameters
+            # If the peak is double we need to save the background two times,
+            # because we want the peaks in diferent lines
 
+            # Number of times the background needs to be repeated.
+            # For single peaks is 0, for double 1 and for triple 2
+            n_repetitions = (len(popt) - 6) // 3
+
+            for j in range(n_repetitions + 1): # First 3 params (background), chi2 and p_value
+                formatted_chi2.append(f"{chi2[0]:.3f}")
+                formatted_pvalue.append(print_pvalue(chi2[1]))
+                for i in range(3):
+                    formatted_params[i].append(print_uncertainty(popt[i], params_uncert[i]))
+
+
+            # Now the peaks. The first category applies to all peaks.
+            for i in range(3, 6):
+                formatted_params[i].append(print_uncertainty(popt[i], params_uncert[i]))
+
+            if n_repetitions >= 1: # It applies to double and triple peaks
+               for i in range(6, 9):
+                formatted_params[i-3].append(print_uncertainty(popt[i], params_uncert[i]))
+
+            if n_repetitions >= 2: # It applies only to triple peaks
+               for i in range(9, 12):
+                formatted_params[i-6].append(print_uncertainty(popt[i], params_uncert[i]))
+
+
+
+        #TODO: Add units to the params
+        # Now, we can build the dictionary
+        for i in range(4): # The first 4 parameters don't have special names
+            dic_df.update({f"$p_{i}$": formatted_params[i]})
+
+        dic_df.update({"$mu$": formatted_params[4]})
+        dic_df.update({"$sigma$": formatted_params[5]})
+        dic_df.update({"$chi^2_r$": formatted_chi2})
+        dic_df.update({r"p-value (\%)": formatted_pvalue})
+
+        df = pd.DataFrame(dic_df)
 
         # Create a directory to store the csv (if it does not exist already)
         if not (CWD / self.csv_path).is_dir():

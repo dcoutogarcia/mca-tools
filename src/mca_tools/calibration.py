@@ -1,13 +1,14 @@
 from .peakSelector import peakSelector
 from .translations import translation_calibration as transl
+from .uncertainty import get_pvalue, print_uncertainty
 
 from numpy.linalg import det
-import scipy.stats as stats
 
 import os
 from shutil import rmtree
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 import mca_tools as mca
 
@@ -31,15 +32,20 @@ def linear_regression(x,y,s):
     for xi, yi, si in zip(x,y,s):
         chi2 += (((a + b * xi) - yi) / si) **2
 
-
-    red_chi2 = chi2 / (len(y) - 2)
-    p_value = (1 - stats.chi2.cdf(chi2, len(y) - 2))
+    red_chi2, p_value = get_pvalue(chi2, len(y) - 2)
 
     print(red_chi2, p_value)
     return [a, b, sa, sb, red_chi2, p_value]
 
 
-def calibration(element_list):
+def calibration(element_list, **kwargs):
+
+    # By default, returning the figure is false
+    return_figure = False
+    # Check if we want to return matplotlib figure
+    for k, val in kwargs.items():
+        if k == "return_figure" and val:
+            return_figure = True
 
     # All the elements must have a peak_energy and a peak_channels
 
@@ -79,17 +85,31 @@ def calibration(element_list):
         fig, ax = plt.subplots(1,1)
         ax.plot(x,y)
         ax.errorbar(channels, energies, xerr = channels_uncertainty, fmt=".")
+        ax.set_ylabel(transl["energy"][mca.lang])
+        ax.set_xlabel(transl["channel"][mca.lang])
+        fig.suptitle(transl["calibration"][mca.lang])
+
+
 
         plt.show()
 
+    if return_figure:
+        return new_a, new_b, new_sa, new_sb, red_chi2, p_value, fig, ax
+    else:
+        return new_a, new_b, new_sa, new_sb, red_chi2, p_value
 
-    return new_a, new_b, new_sa, new_sb, red_chi2, p_value
 
-
-def calibration_helper(folder_path, bkg_file):
+def calibration_helper(folder_path, bkg_file = None, **kwargs):
     """
     The cached files are stored in .cache/peaks/file_name and .cache/energies/file_name
     """
+
+    # By default, the file extension will be pdf
+    fig_ext = ".pdf"
+    # Check if we want another plot file extension
+    for k, val in kwargs.items():
+        if k == "fig_ext":
+            fig_ext = val
 
     # Firstly, we create folders to save the data
 
@@ -141,7 +161,7 @@ def calibration_helper(folder_path, bkg_file):
         file_energies_path = os.path.join(energies_path, file)
         file_output_path = os.path.join(output_path, file)
 
-        element = peakSelector(file_path, bkg_file = background_path)
+        element = peakSelector(file_path, bkg_file = background_path, fig_path = os.path.join(output_path, "figs"), csv_path = os.path.join(output_path, "csv"), fig_ext = fig_ext)
 
         if not os.path.isfile(file_peaks_path):
 
@@ -178,11 +198,41 @@ def calibration_helper(folder_path, bkg_file):
             element.load_peak_energies(file_energies_path)
 
 
-        element.print_fit_info()
         elements.append(element)
 
-    return calibration(elements)
+    # We call the calibration function
+    a, b, sa, sb, red_chi2, p_value, fig, ax = calibration(elements,
+                                                           return_figure = True)
 
+
+    # We start saving the results. In the plot, we need to use the style.
+    with plt.style.context(mca.style):
+        plt.style.use(mca.style)
+        plt.rcParams.update({
+            'figure.dpi': '100',
+            'font.size': 12.0
+        })
+        fig.savefig(os.path.join(output_path, "figs", ("calibration" + fig_ext)))
+
+    # Output data for typst/latex in csv
+    dic = {
+        "a": print_uncertainty(a, sa),
+        "b": print_uncertainty(b, sb),
+        "$chi^2_r$": f"{red_chi2:.3f}",
+    }
+
+    p_value = p_value * 100 # in percentage
+    if p_value  < 1e-3:
+        formatted_p_value = (f"{p_value:.2e}")
+    else:
+        formatted_p_value = (f"{p_value:.2f}")
+
+    dic.update({f"p-value(%)": formatted_p_value})
+
+    df = pd.DataFrame(dic, index = [0])
+    df.to_csv(os.path.join(output_path, "csv", "calibration.csv"), index = False)
+
+    return a, b, sa, sb, red_chi2, p_value
 
 
 

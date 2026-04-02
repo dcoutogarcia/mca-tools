@@ -200,4 +200,22 @@ translation_calibration = {
         "gl": "Escribe as enerxías das gammas. Sepáraas con espazos: ",
     },
 
+    "energy": {
+        "en": "Energy",
+        "es": "Energía",
+        "gl": "Enerxía",
+    },
+
+    "channel" : {
+        "en": "Channel",
+        "es": "Canal",
+        "gl": "Canal",
+    },
+
+    "calibration": {
+        "en": "Calibration function",
+        "es": "Recta de calibración",
+        "gl": "Recta de calibración",
+    },
+
 }

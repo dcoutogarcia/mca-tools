@@ -768,7 +768,7 @@ class peakSelector:
                     y_gauss_2 = gaussian_peak(x_fit, popt[6], popt[7], popt[8])
 
 
-                # We only plotting it's true (default value)
+                # We only plot if plotting it's true (default value)
                 for k, val in non_fit_kwargs.items():
                     if k == "plotting" and val:
                         # We plot the result
@@ -931,7 +931,7 @@ class peakSelector:
 
         # We save the loaded peak_positions
         self.peak_positions = peak_positions
-        self.fit_peak(plotting = False)
+        self.fit_peak()
         return peak_positions
 
     def set_peak_energies(self, energy_list):

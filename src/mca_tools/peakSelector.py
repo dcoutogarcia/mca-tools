@@ -2,6 +2,7 @@ import os
 import pathlib
 
 import numpy as np
+
 from scipy.optimize import curve_fit
 
 import matplotlib.pyplot as plt
@@ -9,9 +10,10 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 import matplotlib
 import scienceplots
+import pandas as pd
 
 from .translations import translation_peakSelector as transl
-from .uncertainty import round_uncertainty
+from .uncertainty import round_uncertainty, print_uncertainty, get_pvalue
 
 import mca_tools as mca # lang as a global function
 
@@ -20,6 +22,7 @@ import mca_tools as mca # lang as a global function
 CWD = pathlib.Path().resolve()
 
 matplotlib.use("qtagg")
+# matplotlib.pyplot.set_loglevel("critical")
 
 """
 Resets the values of the last peak inserted in the plot. It does so
@@ -80,7 +83,11 @@ class peakSelector:
                   *relative* to the CWD. MUST end with a "/" (forward slash)
                   Default: "fig_path/"
 
-        fig_ext: the file extension for the figures. Default: pdf.
+        fig_ext: the file extension for the figures. Default: pdf
+
+        csv_path: the path where CSVs will be automatically saved,
+                  *relative* to the CWD. MUST end with a "/" (forward slash)
+                  Default: "fig_path/"
 
     Methods:
     read_mca: reads the number of counts in each channel and the total
@@ -121,6 +128,7 @@ class peakSelector:
         self.bins_fused = 10 # Default number of bins fused in rebining
         self.fig_path = "fig_path/"
         self.fig_ext = "pdf"
+        self.csv_path = "csv_path/"
 
 
         # Peak info
@@ -149,6 +157,8 @@ class peakSelector:
                 self.fig_path = val
             elif k == "fig_ext":
                 self.fig_ext = val
+            elif k == "csv_path":
+                self.csv_path = val
 
 
         # Here we start the methods automaticaly, they can be used
@@ -330,7 +340,7 @@ class peakSelector:
 
             # Create a directory to store the figures (if it does not exist already)
             if not (CWD / self.fig_path).is_dir():
-                os.mkdir(CWD / self.fig_path)
+                os.makedirs(CWD / self.fig_path)
 
             # Save the plots
             # fig_path/Bismuth_data_PLOT.pdf
@@ -360,7 +370,7 @@ class peakSelector:
             fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
             if not (CWD / self.fig_path).is_dir():
-                os.mkdir(CWD / self.fig_path)
+                os.makedirs(CWD / self.fig_path)
 
             # Save the errorbar plots
             # fig_path/Bismuth_data_ERRORBAR.pdf
@@ -555,6 +565,8 @@ class peakSelector:
         fig, ax = plt.subplots()
         ax.bar(self.xbins, self.rates, self.delta_x, picker = True)
 
+        fig.suptitle(self.file_path.split("/")[-1].split(".")[0])
+
 
         # Here we add the interactive text
         max_xbins = max(self.xbins)
@@ -670,6 +682,7 @@ class peakSelector:
 
         list_popt = []
         list_pcov = []
+        list_chi2 = []
 
         for peak in self.peak_positions:
 
@@ -704,8 +717,9 @@ class peakSelector:
 
                     # Now we compute the curve_fit (with additional kwargs or with auto p0)
                     if len(kwargs) == 0:
-                        popt, pcov = curve_fit(single_peak, x, y, p0=p0, sigma = sy)
+                        popt, pcov, infodict, mseg, ier = curve_fit(single_peak, x, y, p0=p0, sigma = sy, full_output = True)
                     else:
+                    # TODO: If full output is introduced as a kwarg, the program is going to raise an error
                         popt, pcov = curve_fit(single_peak, x, y, sigma = sy, **kwargs)
 
                     # We calculate the plotting points of the theoretical function.
@@ -737,10 +751,12 @@ class peakSelector:
 
                     p0 = [1,1,1,1, x_center_1, FWHM_1, 1, x_center_2, FWHM_2]
 
+
                     # Now we compute the curve_fit (with additional kwargs or with auto p0)
                     if len(kwargs) == 0:
-                        popt, pcov = curve_fit(double_peak, x, y, p0=p0, sigma = sy, )
+                        popt, pcov, infodict, mseg, ier = curve_fit(double_peak, x, y, p0=p0, sigma = sy, full_output = True)
                     else:
+                    # TODO: If full output is introduced as a kwarg, the program is going to raise an error
                         popt, pcov = curve_fit(double_peak, x, y, sigma = sy, **kwargs)
 
 
@@ -752,7 +768,7 @@ class peakSelector:
                     y_gauss_2 = gaussian_peak(x_fit, popt[6], popt[7], popt[8])
 
 
-                # We only plotting it's true (default value)
+                # We only plot if plotting it's true (default value)
                 for k, val in non_fit_kwargs.items():
                     if k == "plotting" and val:
                         # We plot the result
@@ -761,7 +777,6 @@ class peakSelector:
                         # check is performed in __init__.py
                         with plt.style.context(mca.style):
                             plt.style.use(mca.style)
-                            print(plt.rcParams.keys())
                             plt.rcParams.update({
                                 'figure.dpi': '250',
                                 'figure.figsize': [7.5, 6.5],
@@ -787,7 +802,7 @@ class peakSelector:
                             fig.suptitle(transl["gamma spectrogram"][mca.lang])
 
                             if not (CWD / self.fig_path).is_dir():
-                                os.mkdir(CWD / self.fig_path)
+                                os.makedirs(CWD / self.fig_path)
 
                             # Save the plots
                             # fig_path/Bismuth_data_FITPEAK_2560_2998_single.pdf
@@ -800,9 +815,16 @@ class peakSelector:
                             # Showing the plots
                             plt.show()
 
+                # We compute chi2 and its degrees of freedom
+                chi2 = sum(infodict["fvec"]**2) # fvec = (y - f(x)) / sigma_i
+                DoF = len(y) - len(popt) # Number of points - number of fitted params (degrees of freedom)
+
                 # We append the values to the return list
                 list_pcov.append(pcov)
                 list_popt.append(popt)
+                list_chi2.append(get_pvalue(chi2, DoF))
+
+
 
             except RuntimeError:
                 print(transl["optimal parameters not found"][mca.lang])
@@ -832,18 +854,49 @@ class peakSelector:
         self.peak_channels = [v1 for v1, v2 in sorted_pairs]
         self.peak_channels_uncertainty = [v2 for v1, v2 in sorted_pairs]
 
+        # We build the DataFrame
+        dic = {}
+        for i in range(len(list_pcov[0])):
+            dic.update({f"$p_{i}$": [print_uncertainty(list_popt[j][i],
+                np.sqrt(np.diag(list_pcov[j]))[i]) for j in range(len(list_pcov))]})
+
+        # Now we add the reduced chi2
+        dic.update({f"$chi^2_r$": [f"{list_chi2[j][0]:.3f}" for j in range(len(list_chi2))]})
+
+        # For the p value, we format the data diferently taking into
+        # account how big the percentage is.
+        p_val_list = []
+        for i in range(len(list_chi2)):
+            p_value = list_chi2[i][1] * 100
+            if p_value < 1e-3:
+                p_val_list.append(f"{p_value:.2e}")
+            else:
+                p_val_list.append(f"{p_value:.2f}")
+
+        dic.update({f"p-value(%)": p_val_list})
+
+        df = pd.DataFrame(dic)
+
+
+        # Create a directory to store the csv (if it does not exist already)
+        if not (CWD / self.csv_path).is_dir():
+            os.makedirs(CWD / self.csv_path)
+
+        # Save the csv
+        # csv_path/Bismuth_data.csv
+        csv_name = pathlib.Path(self.file_path).stem
+        df.to_csv(
+            str(CWD / self.csv_path / csv_name) + ".csv",
+            index = False
+        )
 
         # We return the data
-        if len(list_pcov) == 1 and (list_popt) == 1:
-            return popt, pcov
-        else:
-            return list_popt, list_pcov
+        return list_popt, list_pcov, list_chi2
 
 
     def save_peaks(self, file_path):
         """
         Saves peak info to specified text file
-        absolute_path
         """
 
         # We check if the file exists
@@ -864,7 +917,6 @@ class peakSelector:
     def load_peaks(self, file_path):
         """
         Load peak data from specified file
-        absolute_path
         """
 
         with open(file_path, "r") as f:
@@ -879,7 +931,7 @@ class peakSelector:
 
         # We save the loaded peak_positions
         self.peak_positions = peak_positions
-        self.fit_peak(plotting = False)
+        self.fit_peak()
         return peak_positions
 
     def set_peak_energies(self, energy_list):

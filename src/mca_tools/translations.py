@@ -163,22 +163,22 @@ translation_calibration = {
     },
 
     "important info": {
-        "en": "IMPORTANT INFO, PLEASE READ\nNow, for every file in the folder, an interactive" +
-            "program will be opened. You have to select the peaks in the program. After all of" +
+        "en": "IMPORTANT INFO, PLEASE READ\nNow, for every file in the folder, an interactive " +
+            "program will be opened. You have to select the peaks in the program. After all of " +
             "them are selected and confirmed, you have to close the matplotlib interative window." +
-            "In that moment, the fitted peaks will be shown to you. When you are ready to select" +
+            "In that moment, the fitted peaks will be shown to you. When you are ready to select " +
             "the next peak, close the fitted windows and press enter.",
 
-        "es": "INFORMACIÓN IMPORTANTE, POR FAVOR LEER\n Por cada archivo en la carpeta indicada," +
-            "un programa interactivo que permitirá seleccionar los picos se abrirá. Después de" +
-            "seleccionarlos e indicar que tipo de pico son, hay que cerrar la ventana interactiva" +
-            "de matplotlib. En ese momento, se abrirán las gráficas correspondientes a los ajustes" +
+        "es": "INFORMACIÓN IMPORTANTE, POR FAVOR LEER\n Por cada archivo en la carpeta indicada, " +
+            "un programa interactivo que permitirá seleccionar los picos se abrirá. Después de " +
+            "seleccionarlos e indicar que tipo de pico son, hay que cerrar la ventana interactiva " +
+            "de matplotlib. En ese momento, se abrirán las gráficas correspondientes a los ajustes " +
             "a los picos. Cuando esté listo para continuar, pulse enter y continúe con las instrucciones.",
 
-        "gl": "INFORMACIÓN IMPORTANTE, POR FAVOR LER\n Por cada arquivo na carpeta indicada," +
+        "gl": "INFORMACIÓN IMPORTANTE, POR FAVOR LER\n Por cada arquivo na carpeta indicada, " +
             "un programa interactivo que permitiralle seleccionar os picos abrirase." +
-            "Despois de seleccionalos e indicar que tipo de pico son, hay que pechar a ventá" +
-            "interactiva de matplotlib. Nese moment, abriranse as gráficas correspondentese aos" +
+            "Despois de seleccionalos e indicar que tipo de pico son, hay que pechar a ventá " +
+            "interactiva de matplotlib. Nese moment, abriranse as gráficas correspondentese aos " +
             "axustees dos picos. Canto estea listo para continuar, pulse enter e continúe coas instruccións",
     },
 
@@ -198,6 +198,24 @@ translation_calibration = {
         "en": "Write the gamma energies. Separate them with spaces: ",
         "es": "Escribe las energías de las gammas. Sepáralas con espacios: ",
         "gl": "Escribe as enerxías das gammas. Sepáraas con espazos: ",
+    },
+
+    "energy": {
+        "en": "Energy",
+        "es": "Energía",
+        "gl": "Enerxía",
+    },
+
+    "channel" : {
+        "en": "Channel",
+        "es": "Canal",
+        "gl": "Canal",
+    },
+
+    "calibration": {
+        "en": "Calibration function",
+        "es": "Recta de calibración",
+        "gl": "Recta de calibración",
     },
 
 }

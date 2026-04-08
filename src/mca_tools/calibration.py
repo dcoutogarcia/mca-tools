@@ -135,9 +135,13 @@ def calibration_helper(folder_path, bkg_file = None, **kwargs):
 
         if user_input.lower() == "y":
             rmtree(cache_path)
-            os.makedirs(cache_path)
-            os.makedirs(peaks_path)
-            os.makedirs(energies_path)
+
+    # Try to create them again, even if they existed to ensure all of the
+    # folders are present (maybe the user just removed one of them)
+    os.makedirs(cache_path, exist_ok = True)
+    os.makedirs(peaks_path, exist_ok = True)
+    os.makedirs(energies_path, exist_ok = True)
+
 
 
     # We save the file names, ignoring them if they are directories

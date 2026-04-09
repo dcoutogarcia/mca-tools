@@ -36,19 +36,20 @@ def print_uncertainty(value, uncertainty):
     # This is because we are using scientific notation
     if value_signif_fig == uncert_signif_fig:
         uncert_str = f"({uncert_str[0]}.{uncert_str[2]})"
+        significant_values = 1 # We print 2 significant values in both the value and uncertainty
 
     else:
         uncert_str = f"({uncert_str[0]}{uncert_str[2]})"
 
-    # The last check we need is if the  number of significant values on the
-    # uncertainty is larger than the main value, that needs to raise an error
+        # The last check we need is if the  number of significant values on the
+        # uncertainty is larger than the main value, that needs to raise an error
 
-    # The first number doesn't count, so we have to subtract 1
-    if int(non_decimal) == 0:
-        significant_values = len(non_decimal) + uncert_round_fig - 2
+        # The first number doesn't count, so we have to subtract 1
+        if int(non_decimal) == 0:
+            significant_values = len(non_decimal) + uncert_round_fig - 2
 
-    else:
-        significant_values = len(non_decimal) + uncert_round_fig - 1
+        else:
+            significant_values = len(non_decimal) + uncert_round_fig - 1
 
     string_formatter = f".{significant_values}e"
     rounded_value = f"{value:{string_formatter}}"

@@ -14,3 +14,4 @@ Eu.select_peaks()
 input("PRESS ENTER WHEN READY\n")
 
 print(mca.calibration([Bi,Co]))
+print(mca.resolution([Bi,Co]))

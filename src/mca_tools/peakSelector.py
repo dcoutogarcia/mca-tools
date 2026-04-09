@@ -14,8 +14,8 @@ import pandas as pd
 
 from .translations import translation_peakSelector as transl
 from .uncertainty import round_uncertainty, print_uncertainty, get_pvalue
+from .options import lang, style
 
-import mca_tools as mca # lang as a global function
 
 
 # Current Working Directory, used later to get relative paths
@@ -136,6 +136,8 @@ class peakSelector:
         self.peak_energies = None
         self.peak_channels = None
         self.peak_channels_uncertainty = None
+        self.peak_sigmas = None
+        self.peak_sigmas_uncertainty = None
 
 
         # Background noise filtering
@@ -325,8 +327,8 @@ class peakSelector:
         """
         Plots the current rates.
         """
-        with plt.style.context(mca.style):
-            plt.style.use(mca.style)
+        with plt.style.context(style):
+            plt.style.use(style)
             plt.rcParams.update({
                 'figure.dpi': '120', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
                 'font.size': 12.0
@@ -334,9 +336,9 @@ class peakSelector:
             fig, ax = plt.subplots(1,1)
             ax.bar(self.xbins, self.rates, self.delta_x)
 
-            ax.set_xlabel(transl["channels"][mca.lang])
-            ax.set_ylabel(transl["rates"][mca.lang])
-            fig.suptitle(transl["gamma spectrogram"][mca.lang])
+            ax.set_xlabel(transl["channels"][lang])
+            ax.set_ylabel(transl["rates"][lang])
+            fig.suptitle(transl["gamma spectrogram"][lang])
 
             # Create a directory to store the figures (if it does not exist already)
             if not (CWD / self.fig_path).is_dir():
@@ -356,8 +358,8 @@ class peakSelector:
         Plots the current rates with errorbars
         """
 
-        with plt.style.context(mca.style):
-            plt.style.use(mca.style)
+        with plt.style.context(style):
+            plt.style.use(style)
             plt.rcParams.update({
                 'figure.dpi': '120',
                 'font.size': 12.0
@@ -365,9 +367,9 @@ class peakSelector:
             fig, ax = plt.subplots(1,1)
             ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
 
-            ax.set_xlabel(transl["channels"][mca.lang])
-            ax.set_ylabel(transl["rates"][mca.lang])
-            fig.suptitle(transl["gamma spectrogram"][mca.lang])
+            ax.set_xlabel(transl["channels"][lang])
+            ax.set_ylabel(transl["rates"][lang])
+            fig.suptitle(transl["gamma spectrogram"][lang])
 
             if not (CWD / self.fig_path).is_dir():
                 os.makedirs(CWD / self.fig_path)
@@ -457,11 +459,11 @@ class peakSelector:
         def save_peak_type(peak_type: str):
 
             if len(peak_positions[-1][0]) == 0:
-                print(transl["two points necessary"][mca.lang])
+                print(transl["two points necessary"][lang])
 
             else:
                 if len(peak_positions[-1][0]) != 2:
-                    print(transl["two points necessary"][mca.lang])
+                    print(transl["two points necessary"][lang])
 
 
                 else:
@@ -475,7 +477,7 @@ class peakSelector:
                     for line in line_positions[-1]:
                         line.set(color = "gray")
 
-                    print(transl["peak selected"][mca.lang])
+                    print(transl["peak selected"][lang])
 
         def save_peak_data(x):
             """
@@ -484,7 +486,7 @@ class peakSelector:
 
             # Firstly, we check whether the last peak has both points
             if len(peak_positions[-1][0]) == 2 and peak_positions[-1][1] == None:
-                print(transl["both points selected"][mca.lang])
+                print(transl["both points selected"][lang])
 
             else:
                 if len(peak_positions[-1][0]) == 1:
@@ -548,23 +550,23 @@ class peakSelector:
             # For clicking the text
             elif isinstance(event.artist, Text):
                 text = event.artist.get_text()
-                if text == transl["reset current peak"][mca.lang]:
+                if text == transl["reset current peak"][lang]:
                     reset_peak_data()
                     fig.canvas.draw()
 
-                elif text == transl["reset all peaks"][mca.lang]:
+                elif text == transl["reset all peaks"][lang]:
                     reset_global_data()
                     fig.canvas.draw()
 
-                elif text == transl["mark as single"][mca.lang]:
+                elif text == transl["mark as single"][lang]:
                     save_peak_type("single")
                     fig.canvas.draw()
 
-                elif text == transl["mark as double"][mca.lang]:
+                elif text == transl["mark as double"][lang]:
                     save_peak_type("double")
                     fig.canvas.draw()
 
-                elif text == transl["mark as triple"][mca.lang]:
+                elif text == transl["mark as triple"][lang]:
                     save_peak_type("triple")
                     fig.canvas.draw()
 
@@ -588,31 +590,31 @@ class peakSelector:
 
         # Peak options
         ax.text(0.7 * max_xbins , 0.95 * max_rates ,
-                transl["confirm peak"][mca.lang], size="x-large")
+                transl["confirm peak"][lang], size="x-large")
 
         ax.text(0.7 * max_xbins, 0.85 * max_rates,
-                transl["mark as single"][mca.lang], picker = True,
+                transl["mark as single"][lang], picker = True,
                 size="large", style = "italic")
 
         ax.text(0.7 * max_xbins, 0.75 * max_rates,
-                transl["mark as double"][mca.lang], picker = True,
+                transl["mark as double"][lang], picker = True,
                 size="large", style = "italic")
 
         ax.text(0.7 * max_xbins, 0.65 * max_rates,
-                transl["mark as triple"][mca.lang], picker = True,
+                transl["mark as triple"][lang], picker = True,
                 size="large", style = "italic")
 
 
         # Global options
         ax.text(0.20 * max_xbins, 0.95 * max_rates,
-                transl["reset peak"][mca.lang], size="x-large")
+                transl["reset peak"][lang], size="x-large")
 
         ax.text(0.20 * max_xbins, 0.85 * max_rates,
-                transl["reset current peak"][mca.lang], picker = True,
+                transl["reset current peak"][lang], picker = True,
                 size="large", style = "italic")
 
         ax.text(0.20 * max_xbins, 0.75 * max_rates,
-                transl["reset all peaks"][mca.lang], picker = True,
+                transl["reset all peaks"][lang], picker = True,
                 size="large", style = "italic")
 
 
@@ -632,7 +634,7 @@ class peakSelector:
 
         # If no peaks were selected, we avoid unnecessary operations
         if len(self.peak_positions) == 0:
-            print(transl["no peaks selected"][mca.lang])
+            print(transl["no peaks selected"][lang])
             return None
 
         # We separate the non curve_fit kwargs from plotting:
@@ -708,9 +710,18 @@ class peakSelector:
             FWHM = abs(x_FWHM - x_center)
             return FWHM
 
+        # Parameter lists for each peak
         list_popt = []
         list_pcov = []
         list_chi2 = []
+
+        # Before returning, and for calibration purposes, we will find
+        # all gaussian centroids and append them into a list
+        peak_channels = []
+        peak_channels_uncertainty = []
+        peak_sigmas = []
+        peak_sigmas_uncertainty = []
+
 
         for peak in self.peak_positions:
 
@@ -849,8 +860,8 @@ class peakSelector:
 
                         # Set the style. Style selection and latex installation
                         # check is performed in __init__.py
-                        with plt.style.context(mca.style):
-                            plt.style.use(mca.style)
+                        with plt.style.context(style):
+                            plt.style.use(style)
                             plt.rcParams.update({
                                 'figure.dpi': '250',
                                 'figure.figsize': [7.5, 6.5],
@@ -858,28 +869,28 @@ class peakSelector:
                                 'font.size': 12.0
                             })
                             fig, ax = plt.subplots(1,1)
-                            ax.plot(x_fit, y_fit, label = transl["fit"][mca.lang])
-                            ax.plot(x_fit, y_background, label = transl["background"][mca.lang])
-                            ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][mca.lang])
+                            ax.plot(x_fit, y_fit, label = transl["fit"][lang])
+                            ax.plot(x_fit, y_background, label = transl["background"][lang])
+                            ax.errorbar(x,y, yerr=sy ,fmt=".", label = transl["points"][lang])
 
                             if peak[1] == "single":
-                                ax.plot(x_fit, y_gauss_1, label = transl["gauss"][mca.lang])
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss"][lang])
 
                             elif peak[1] == "double":
-                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
-                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][lang])
+                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][lang])
 
                             elif peak[1] == "triple":
-                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][mca.lang])
-                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][mca.lang])
-                                ax.plot(x_fit, y_gauss_3, label = transl["gauss 3"][mca.lang])
+                                ax.plot(x_fit, y_gauss_1, label = transl["gauss 1"][lang])
+                                ax.plot(x_fit, y_gauss_2, label = transl["gauss 2"][lang])
+                                ax.plot(x_fit, y_gauss_3, label = transl["gauss 3"][lang])
 
 
 
                             ax.legend()
-                            ax.set_xlabel(transl["channels"][mca.lang])
-                            ax.set_ylabel(transl["rates"][mca.lang])
-                            fig.suptitle(transl["gamma spectrogram"][mca.lang])
+                            ax.set_xlabel(transl["channels"][lang])
+                            ax.set_ylabel(transl["rates"][lang])
+                            fig.suptitle(transl["gamma spectrogram"][lang])
 
                             if not (CWD / self.fig_path).is_dir():
                                 os.makedirs(CWD / self.fig_path)
@@ -905,58 +916,115 @@ class peakSelector:
                 list_chi2.append(get_pvalue(chi2, DoF))
 
 
+                # Now, we manage the peak data, we save it to pass the list
+                # to calibration() function.
+                if peak[1] == "single":
+                    peak_channels.append(popt[4])
+                    peak_channels_uncertainty.append(pcov[4,4])
+                    peak_sigmas.append(popt[5])
+                    peak_sigmas_uncertainty.append(pcov[5,5])
+                elif peak[1] == "double":
+                    peak_channels.append(popt[4])
+                    peak_channels_uncertainty.append(pcov[4,4])
+                    peak_sigmas.append(popt[5])
+                    peak_sigmas_uncertainty.append(pcov[5,5])
+
+                    peak_channels.append(popt[7])
+                    peak_channels_uncertainty.append(pcov[7,7])
+                    peak_sigmas.append(popt[8])
+                    peak_sigmas_uncertainty.append(pcov[8,8])
+
+                elif peak[1] == "triple": # list index out of range?
+                    peak_channels.append(popt[4])
+                    peak_channels_uncertainty.append(pcov[4,4])
+                    peak_sigmas.append(popt[5])
+                    peak_sigmas_uncertainty.append(pcov[5,5])
+
+                    peak_channels.append(popt[7])
+                    peak_channels_uncertainty.append(pcov[7,7])
+                    peak_sigmas.append(popt[8])
+                    peak_sigmas_uncertainty.append(pcov[8,8])
+
+                    peak_channels.append(popt[10])
+                    peak_channels_uncertainty.append(pcov[10,10])
+                    peak_sigmas.append(popt[11])
+                    peak_sigmas_uncertainty.append(pcov[11,11])
+
+
 
             except RuntimeError:
-                print(transl["optimal parameters not found"][mca.lang])
-                popt = None
-                pcov = None
+                print(transl["optimal parameters not found"][lang])
 
 
-        # Before returning, and for calibration purposes, we will find
-        # all gaussian centroids and append them into a list
-        peak_channels = []
-        peak_channels_uncertainty = []
-
-        for i in range(len(list_pcov)):
-            if peak[1] == "single":
-                peak_channels.append(list_popt[i][4])
-                peak_channels_uncertainty.append(list_pcov[i][4,4])
-
-            elif peak[1] == "double":
-                peak_channels.append(list_popt[i][4])
-                peak_channels_uncertainty.append(list_pcov[i][4,4])
-
-                peak_channels.append(list_popt[i][7])
-                peak_channels_uncertainty.append(list_pcov[i][7,7])
-
-
+        # We save the channels in order
         sorted_pairs = sorted(zip(peak_channels, peak_channels_uncertainty))
         self.peak_channels = [v1 for v1, v2 in sorted_pairs]
         self.peak_channels_uncertainty = [v2 for v1, v2 in sorted_pairs]
 
-        # We build the DataFrame
-        dic = {}
-        for i in range(len(list_pcov[0])):
-            dic.update({f"$p_{i}$": [print_uncertainty(list_popt[j][i],
-                np.sqrt(np.diag(list_pcov[j]))[i]) for j in range(len(list_pcov))]})
+        sorted_pairs = sorted(zip(peak_sigmas, peak_sigmas_uncertainty))
+        self.peak_sigmas = [v1 for v1, v2 in sorted_pairs]
+        self.peak_sigmas_uncertainty = [v2 for v1, v2 in sorted_pairs]
 
-        # Now we add the reduced chi2
-        dic.update({f"$chi^2_r$": [f"{list_chi2[j][0]:.3f}" for j in range(len(list_chi2))]})
+        # We build the DataFrame. Firstly, we save the background info,
+        # because it is common to all multipeak fits.
 
-        # For the p value, we format the data diferently taking into
-        # account how big the percentage is.
-        p_val_list = []
-        for i in range(len(list_chi2)):
-            p_value = list_chi2[i][1] * 100
+        # An auxiliary function to format p_value
+        def print_pvalue(p_value):
+            p_value = 100 * p_value
+
             if p_value < 1e-3:
-                p_val_list.append(f"{p_value:.2e}")
+                return f"{p_value:.2e}"
             else:
-                p_val_list.append(f"{p_value:.2f}")
+                return f"{p_value:.3f}"
 
-        dic.update({f"p-value(%)": p_val_list})
+        # Here, the dataframe columns will be saved
+        dic_df = {}
+        formatted_params = [[],[],[],[],[],[]] # We only want the columns corresponding to a single peak
+        formatted_chi2 = []
+        formatted_pvalue = []
+        for popt, pcov, chi2 in zip(list_popt, list_pcov, list_chi2):
+            params_uncert = np.sqrt(np.diag(pcov))
 
-        df = pd.DataFrame(dic)
+            # Now all depends on the number of parameters
+            # If the peak is double we need to save the background two times,
+            # because we want the peaks in diferent lines
 
+            # Number of times the background needs to be repeated.
+            # For single peaks is 0, for double 1 and for triple 2
+            n_repetitions = (len(popt) - 6) // 3
+
+            for j in range(n_repetitions + 1): # First 3 params (background), chi2 and p_value
+                formatted_chi2.append(f"{chi2[0]:.3f}")
+                formatted_pvalue.append(print_pvalue(chi2[1]))
+                for i in range(3):
+                    formatted_params[i].append(print_uncertainty(popt[i], params_uncert[i]))
+
+
+            # Now the peaks. The first category applies to all peaks.
+            for i in range(3, 6):
+                formatted_params[i].append(print_uncertainty(popt[i], params_uncert[i]))
+
+            if n_repetitions >= 1: # It applies to double and triple peaks
+               for i in range(6, 9):
+                formatted_params[i-3].append(print_uncertainty(popt[i], params_uncert[i]))
+
+            if n_repetitions >= 2: # It applies only to triple peaks
+               for i in range(9, 12):
+                formatted_params[i-6].append(print_uncertainty(popt[i], params_uncert[i]))
+
+
+
+        #TODO: Add units to the params
+        # Now, we can build the dictionary
+        for i in range(4): # The first 4 parameters don't have special names
+            dic_df.update({f"$p_{i}$": formatted_params[i]})
+
+        dic_df.update({"$mu$": formatted_params[4]})
+        dic_df.update({"$sigma$": formatted_params[5]})
+        dic_df.update({"$chi^2_r$": formatted_chi2})
+        dic_df.update({r"p-value (\%)": formatted_pvalue})
+
+        df = pd.DataFrame(dic_df)
 
         # Create a directory to store the csv (if it does not exist already)
         if not (CWD / self.csv_path).is_dir():
@@ -981,12 +1049,12 @@ class peakSelector:
 
         # We check if the file exists
         if os.path.exists(file_path):
-            user_input = (tranls["overwrite file?"][mca.lang])
+            user_input = (tranls["overwrite file?"][lang])
             if user_input.lower() != "y":
-                print(transl["cancelling operation"][mca.lang])
+                print(transl["cancelling operation"][lang])
                 return
             else:
-                print(transl["overwritting file"][mca.lang])
+                print(transl["overwritting file"][lang])
 
 
         with open(file_path, "w") as f:
@@ -1029,12 +1097,12 @@ class peakSelector:
 
          # We check if the file exists
         if os.path.exists(file_path):
-            user_input = (tranls["overwrite file?"][mca.lang])
+            user_input = (tranls["overwrite file?"][lang])
             if user_input.lower() != "y":
-                print(transl["cancelling operation"][mca.lang])
+                print(transl["cancelling operation"][lang])
                 return
             else:
-                print(transl["overwritting file"][mca.lang])
+                print(transl["overwritting file"][lang])
 
 
         with open(file_path, "w") as f:

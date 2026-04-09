@@ -161,7 +161,20 @@ translation_peakSelector = {
 
 }
 
+
 translation_calibration = {
+    "log(resolution)": {
+        "en": "log(resolution)",
+        "es": "log(resolución)",
+        "gl": "log(resolución)",
+    },
+
+    "log(energy)": {
+        "en": "log(energy)",
+        "es": "log(energía)",
+        "es": "log(enerxía)",
+    },
+
     "not all elements have channels and energy": {
         "en": "Not all elements have defined channels and energy!",
         "es": "¡No todos los elementos tienen canales o energía definidos!",

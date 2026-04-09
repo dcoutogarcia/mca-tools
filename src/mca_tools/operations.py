@@ -84,7 +84,7 @@ def calibration(element_list, **kwargs):
         fig, ax = plt.subplots(1,1)
         ax.plot(x,y)
         ax.errorbar(channels, energies, xerr = channels_uncertainty, fmt=".")
-        ax.set_ylabel(transl["energy"][lang])
+        ax.set_ylabel(transl["energy"][lang] + " [KeV]")
         ax.set_xlabel(transl["channel"][lang])
 
 

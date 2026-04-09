@@ -337,7 +337,7 @@ class peakSelector:
             ax.bar(self.xbins, self.rates, self.delta_x)
 
             ax.set_xlabel(transl["channels"][lang])
-            ax.set_ylabel(transl["rates"][lang])
+            ax.set_ylabel(transl["rates"][lang] + " " + transl["rates_units"][lang])
             fig.suptitle(transl["gamma spectrogram"][lang])
 
             # Create a directory to store the figures (if it does not exist already)
@@ -368,7 +368,7 @@ class peakSelector:
             ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
 
             ax.set_xlabel(transl["channels"][lang])
-            ax.set_ylabel(transl["rates"][lang])
+            ax.set_ylabel(transl["rates"][lang] + " " + transl["rates_units"][lang])
             fig.suptitle(transl["gamma spectrogram"][lang])
 
             if not (CWD / self.fig_path).is_dir():
@@ -889,7 +889,7 @@ class peakSelector:
 
                             ax.legend()
                             ax.set_xlabel(transl["channels"][lang])
-                            ax.set_ylabel(transl["rates"][lang])
+                            ax.set_ylabel(transl["rates"][lang] + " " + transl["rates_units"][lang])
                             fig.suptitle(transl["gamma spectrogram"][lang])
 
                             if not (CWD / self.fig_path).is_dir():

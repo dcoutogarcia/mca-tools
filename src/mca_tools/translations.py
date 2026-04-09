@@ -21,6 +21,12 @@ translation_peakSelector = {
         "gl": "Taxa",
         },
 
+    "counts_units": {
+        "en": "Counts/s",
+        "es": "Cuentas/s",
+        "gl": "Contas/s"
+    },
+
     "gamma spectrogram": {
         "en": "Gamma Spectrogram",
         "es": "Espectrograma Gamma ",

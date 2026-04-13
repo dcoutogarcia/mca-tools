@@ -21,7 +21,7 @@ translation_peakSelector = {
         "gl": "Taxa",
         },
 
-    "counts_units": {
+    "rates_units": {
         "en": "Counts/s",
         "es": "Cuentas/s",
         "gl": "Contas/s"

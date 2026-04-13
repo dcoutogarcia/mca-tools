@@ -1,6 +1,6 @@
 [project]
 name = "mca-tools"
-version = "0.5.0"
+version = "0.6.0"
 description = "Set of tools to postprocess the data of a spectrogram made with a Multichannel analyzer (mca) "
 readme = "README.md"
 authors = [

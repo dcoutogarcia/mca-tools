@@ -330,14 +330,16 @@ class peakSelector:
         with plt.style.context(style):
             plt.style.use(style)
             plt.rcParams.update({
-                'figure.dpi': '120', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
-                'font.size': 12.0
+                'figure.dpi': '100', # Suggested by https://github.com/garrettj403/SciencePlots/wiki/Gallery#styles-for-specific-academic-journals
+                'figure.figsize': [7, 6],
+                'figure.constrained_layout.use': True,
+                'font.size': 14.0,
             })
             fig, ax = plt.subplots(1,1)
             ax.bar(self.xbins, self.rates, self.delta_x)
 
             ax.set_xlabel(transl["channels"][lang])
-            ax.set_ylabel(transl["rates"][lang] + " " + transl["rates_units"][lang])
+            ax.set_ylabel(transl["rates"][lang] + " " + "(" + transl["rates_units"][lang] + ")")
             fig.suptitle(transl["gamma spectrogram"][lang])
 
             # Create a directory to store the figures (if it does not exist already)
@@ -361,14 +363,16 @@ class peakSelector:
         with plt.style.context(style):
             plt.style.use(style)
             plt.rcParams.update({
-                'figure.dpi': '120',
-                'font.size': 12.0
+                'figure.dpi': '100',
+                'figure.figsize': [7, 6],
+                'figure.constrained_layout.use': True,
+                'font.size': 14.0
             })
             fig, ax = plt.subplots(1,1)
             ax.errorbar(self.xbins, self.rates, yerr = self.get_rates_uncertainty(), fmt=".")
 
             ax.set_xlabel(transl["channels"][lang])
-            ax.set_ylabel(transl["rates"][lang] + " " + transl["rates_units"][lang])
+            ax.set_ylabel(transl["rates"][lang] + " " + "(" +  transl["rates_units"][lang] + ")")
             fig.suptitle(transl["gamma spectrogram"][lang])
 
             if not (CWD / self.fig_path).is_dir():
@@ -381,7 +385,7 @@ class peakSelector:
                 str(CWD / self.fig_path / fig_name) + f"_ERRORBAR.{self.fig_ext}"
             )
 
-        plt.show()
+            plt.show()
 
     def select_peaks(self):
         """
@@ -863,10 +867,10 @@ class peakSelector:
                         with plt.style.context(style):
                             plt.style.use(style)
                             plt.rcParams.update({
-                                'figure.dpi': '250',
-                                'figure.figsize': [7.5, 6.5],
+                                'figure.dpi': '100',
+                                'figure.figsize': [7, 6],
                                 'figure.constrained_layout.use': True,
-                                'font.size': 12.0
+                                'font.size': 14.0
                             })
                             fig, ax = plt.subplots(1,1)
                             ax.plot(x_fit, y_fit, label = transl["fit"][lang])
@@ -889,7 +893,7 @@ class peakSelector:
 
                             ax.legend()
                             ax.set_xlabel(transl["channels"][lang])
-                            ax.set_ylabel(transl["rates"][lang] + " " + transl["rates_units"][lang])
+                            ax.set_ylabel(transl["rates"][lang] + " " + "(" + transl["rates_units"][lang] + ")")
                             fig.suptitle(transl["gamma spectrogram"][lang])
 
                             if not (CWD / self.fig_path).is_dir():

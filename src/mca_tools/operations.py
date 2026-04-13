@@ -79,7 +79,9 @@ def calibration(element_list, **kwargs):
         plt.style.use(style)
         plt.rcParams.update({
             'figure.dpi': '100',
-            'font.size': 12.0
+            'figure.figsize': [7, 6],
+            'figure.constrained_layout.use': True,
+            'font.size': 14.0
         })
         fig, ax = plt.subplots(1,1)
         ax.plot(x,y)
@@ -141,7 +143,9 @@ def resolution(element_list, **kwargs):
         plt.style.use(style)
         plt.rcParams.update({
             'figure.dpi': '100',
-            'font.size': 12.0
+            'figure.figsize': [7, 6],
+            'figure.constrained_layout.use': True,
+            'font.size': 14.0
         })
         fig, ax = plt.subplots(1,1)
         ax.plot(x,y)
